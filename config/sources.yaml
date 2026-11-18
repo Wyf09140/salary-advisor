@@ -1,0 +1,33 @@
+# File names change each release: confirm on the source pages before `make data`.
+oews:
+  # https://www.bls.gov/oes/tables.htm -> May 2025 -> Metropolitan and nonmetropolitan area (XLSX)
+  url: https://www.bls.gov/oes/special-requests/oesm25ma.zip
+  file: oesm25ma.zip
+  # County -> MSA crosswalk (linked from the May 2025 OEWS technical notes)
+  area_definitions_url: https://www.bls.gov/oes/area_definitions_m2025.xlsx
+  area_definitions_file: area_definitions_m2025.xlsx
+lca:
+  # https://www.dol.gov/agencies/eta/foreign-labor/performance -> LCA Programs
+  # Check the FY2025/FY2026 record layout: if worksites sit in a separate file, add it under worksite_urls.
+  train_urls:   # FY2025 = training data
+    - https://www.dol.gov/sites/dolgov/files/ETA/oflc/pdfs/LCA_Disclosure_Data_FY2025_Q1.xlsx
+    - https://www.dol.gov/sites/dolgov/files/ETA/oflc/pdfs/LCA_Disclosure_Data_FY2025_Q2.xlsx
+    - https://www.dol.gov/sites/dolgov/files/ETA/oflc/pdfs/LCA_Disclosure_Data_FY2025_Q3.xlsx
+    - https://www.dol.gov/sites/dolgov/files/ETA/oflc/pdfs/LCA_Disclosure_Data_FY2025_Q4.xlsx
+  shift_urls:   # FY2026 = out-of-time test (wage-weighted lottery year)
+    - https://www.dol.gov/sites/dolgov/files/ETA/oflc/pdfs/LCA_Disclosure_Data_FY2026_Q1.xlsx
+    - https://www.dol.gov/sites/dolgov/files/ETA/oflc/pdfs/LCA_Disclosure_Data_FY2026_Q2.xlsx
+    - https://www.dol.gov/sites/dolgov/files/ETA/oflc/pdfs/LCA_Disclosure_Data_FY2026_Q3.xlsx
+  wage_levels: [I, II]          # early-career proxy (Level I ~ 17th pct, Level II ~ 34th pct)
+kaggle:
+  dataset: arshkon/linkedin-job-postings
+  experience_levels: [Entry level, Associate]
+onet:
+  # https://www.onetcenter.org/database.html -> O*NET 31.0 -> Text (ZIP)
+  url: https://www.onetcenter.org/dl_files/database/db_31_0_text.zip
+  file: db_31_0_text.zip
+min_annual_wage: 30000
+max_annual_wage: 500000
+title_match_min_score: 0.55     # cosine threshold for posting title -> SOC
+# OEWS shows '#' for annual wages at or above its top-code; check the value in the May 2025 technical notes.
+oews_topcode_annual: 239200
