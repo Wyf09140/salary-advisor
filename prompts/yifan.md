@@ -54,3 +54,20 @@ Outcome: Confirmed sections 一–二 against the repo; corrected section 三 (c
 Prompt: files downloaded. Kaggle data is already in data/raw/linkedin/ (downloaded manually), so make download.py skip the kaggle CLI when data/raw/linkedin/postings.csv exists. Then run make data and make baseline.
 Outcome: download.py skips kaggle when postings.csv exists. Fixed two real-format bugs found before the run (area definitions column "May 2025 Area Code"; OEWS zip has BOS + MSA files and the code read only the first), mirrored both in tests/fixtures.py. Verified top-code $239,200 from the OEWS Field Descriptions sheet. baseline.py falls back to local metrics until src/models/evaluate.py exists.
 Outcome (cont.): make data OK (265,003 final rows). make baseline OK. Also fixed P90_TOPCODED, which flagged 28 real May 2025 P90 values above $239,200 (no '#' markers in the 2025 file); fixture + assertions added.
+
+### 2026-11-18 · Claude Code (Opus 5.5) · Purpose: coding / debugging
+Prompt:
+```
+Good work. Next, in this order:
+
+1. Restore src/models properly: change .gitignore line "models/" to "/models/" and confirm with `git check-ignore -v src/models/predict.py`. Create src/models/__init__.py (empty), evaluate.py (mae_log, pinball, coverage — same as your fallback), predict.py (stub predict() and recommend() matching the contract in README.md and tests/test_interfaces.py), and train.py (docstring plan only: SBERT title embeddings, GroupShuffleSplit on employer, log wage target, XGBoost reg:quantileerror at 0.1/0.5/0.9, statsmodels QuantReg, save to models/quantile_models.pkl). Then remove the fallback in baseline.py and run the full test suite.
+
+2. Add FY2026 Q4 to shift_urls (file is already in data/raw/). Don't use the worksite files; add one line to src/data/README.md noting multi-worksite filings as a known limitation.
+
+3. Diagnose title matching before tuning. Of the 10,172 Entry/Associate postings, count how many titles contain tech keywords (software, developer, engineer AND (software|data|ml|machine learning|backend|frontend|full stack), data scientist, data analyst, data engineer, machine learning, analytics, qa, test engineer, web developer, database). Report that count vs the 483 matched, and show me 30 keyword-hit titles that did NOT match (with their best SOC and score) and 20 matched titles with SOC and score. Then propose a fix (threshold change, keyword rules for common titles, or both) and show the new match count and a 30-row sample before applying it.
+
+4. Add the LCA coverage finding (wage floor at prevailing wage inflates P10–P90 coverage to 93–97%) as a "Notes for the report" section in src/data/README.md.
+
+Rerun make data and make baseline after steps 2–3, then commit and push. Log this message in prompts/yifan.md.
+```
+Outcome (steps 1, 2, 4 + step-3 diagnosis): .gitignore "/models/" (src/models no longer ignored); src/models/{__init__,evaluate,predict,train}.py added; baseline fallback removed; 6/6 tests pass. FY2026 Q4 added to shift_urls; README limitation + "Notes for the report". Title diagnosis: 354 keyword hits vs 483 matched; 103/109 keyword misses map to non-tech or out-of-scope SOCs with high scores (O*NET exact-title ties broken arbitrarily, e.g. Data Analyst -> 19-3022), not a threshold problem. Proposed keyword rules -> 552 matched; awaiting approval before applying and rerunning make data.

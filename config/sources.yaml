@@ -8,6 +8,7 @@ oews:
   area_definitions_file: area_definitions_m2025.xlsx
 lca:
   # https://www.dol.gov/agencies/eta/foreign-labor/performance -> LCA Programs
+  # worksite_urls are listed for reference only; the pipeline does not use them (see src/data/README.md).
   # Verified 2026-11-18 against the performance page. FY2026 files live under /media/, FY2025 under /sites/.../pdfs/.
   # Record layout: WORKSITE_CITY/COUNTY/STATE/POSTAL_CODE are in the main file for the FIRST worksite only;
   # extra worksites (TOTAL_WORKSITE_LOCATIONS > 1) are in a separate Worksites file, published once per FY (Q4, cumulative).
@@ -20,10 +21,11 @@ lca:
     - https://www.dol.gov/sites/dolgov/files/ETA/oflc/pdfs/LCA_Disclosure_Data_FY2025_Q2.xlsx
     - https://www.dol.gov/sites/dolgov/files/ETA/oflc/pdfs/LCA_Disclosure_Data_FY2025_Q3.xlsx
     - https://www.dol.gov/sites/dolgov/files/ETA/oflc/pdfs/LCA_Disclosure_Data_FY2025_Q4.xlsx
-  shift_urls:   # FY2026 = out-of-time test (wage-weighted lottery year). FY2026 Q4 is also published (not yet included).
+  shift_urls:   # FY2026 = out-of-time test (wage-weighted lottery year)
     - https://www.dol.gov/media/LCA_Disclosure_Data_FY2026_Q1.xlsx
     - https://www.dol.gov/media/LCA_Disclosure_Data_FY2026_Q2.xlsx
     - https://www.dol.gov/media/LCA_Disclosure_Data_FY2026_Q3.xlsx
+    - https://www.dol.gov/media/LCA_Disclosure_Data_FY2026_Q4.xlsx
   wage_levels: [I, II]          # early-career proxy (Level I ~ 17th pct, Level II ~ 34th pct)
 kaggle:
   dataset: arshkon/linkedin-job-postings

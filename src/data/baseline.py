@@ -19,27 +19,8 @@ def baseline_predictions(df: pd.DataFrame, oews: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
-def _metrics():
-    """Use the model workstream's metrics when present; until src/models/ lands, a local copy
-    matching the contract in tests/test_interfaces.py::test_metrics."""
-    try:
-        from src.models.evaluate import mae_log, pinball, coverage
-    except ModuleNotFoundError:
-        def mae_log(y, p):
-            return float(np.mean(np.abs(np.log(np.asarray(y, float)) - np.log(np.asarray(p, float)))))
-
-        def pinball(y, q, tau):
-            d = np.asarray(y, float) - np.asarray(q, float)
-            return float(np.mean(np.maximum(tau * d, (tau - 1) * d)))
-
-        def coverage(y, lo, hi):
-            y = np.asarray(y, float)
-            return float(np.mean((y >= np.asarray(lo, float)) & (y <= np.asarray(hi, float))))
-    return mae_log, pinball, coverage
-
-
 def main() -> None:
-    mae_log, pinball, coverage = _metrics()
+    from src.models.evaluate import mae_log, pinball, coverage
     df = pd.read_parquet(PROCESSED / "train.parquet")
     oews = pd.read_parquet(PROCESSED / "oews.parquet")
     pred = baseline_predictions(df, oews)

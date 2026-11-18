@@ -23,6 +23,7 @@
 - **`split=shift`** is FY2026 LCA, filed under the wage-weighted H-1B selection rule. Use it as an
   out-of-time test, not for training.
 - Group the train/test split by `employer` (already normalized: suffixes and punctuation removed).
+- **Known limitation, multi-worksite filings:** LCA rows use only the first worksite in the main file; filings with `TOTAL_WORKSITE_LOCATIONS` > 1 have their other worksites in separate `LCA_Worksites_*` files, which we don't join.
 - OEWS P90 can be top-coded (`P90_TOPCODED`); top-coded values are set to the cap in config.
 
 ## Before the first real run
@@ -31,3 +32,13 @@
 2. Open one FY2025 LCA record layout PDF and check that `WORKSITE_COUNTY` is in the main file.
 3. Check the OEWS top-code value in the May 2025 technical notes and set `oews_topcode_annual`.
 4. Tune `title_match_min_score` by eyeballing 50 matched posting titles.
+
+## Notes for the report
+
+- **LCA coverage of the BLS P10–P90 interval is inflated (93% FY2025, 97% FY2026, vs 80% nominal).**
+  H-1B employers must pay at least the prevailing wage, which for Level I/II is pegged to OEWS
+  percentiles (~17th / ~34th) for the same occupation and area. LCA wages are therefore floored
+  near the bottom of the OEWS distribution and rarely fall below P10, so coverage is high by
+  construction, not because the BLS interval is well calibrated for early-career candidates.
+  Postings (no wage floor) show 80.5%. Compare models to the baseline on pinball loss and MAE,
+  and read LCA coverage with this floor in mind.
