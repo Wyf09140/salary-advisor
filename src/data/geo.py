@@ -29,6 +29,14 @@ def _col(df: pd.DataFrame, *keys: str) -> str:
     raise KeyError(f"no column containing {keys}; columns are {list(df.columns)}")
 
 
+def _metro_col(df: pd.DataFrame) -> str:
+    # May 2025 file names it "May 2025 Area Code" (covers metro and nonmetro areas); older files used "MSA code"
+    try:
+        return _col(df, "msa", "code")
+    except KeyError:
+        return _col(df, "area", "code")
+
+
 def load_crosswalk() -> pd.DataFrame:
     """One row per county: county_fips, state, county_norm, metro."""
     a = pd.read_excel(RAW / SOURCES["oews"]["area_definitions_file"], dtype=str)
@@ -39,6 +47,6 @@ def load_crosswalk() -> pd.DataFrame:
         "county_fips": st_fips + cty,
         "state": st_fips.map(STATE_FIPS),
         "county_norm": a[_col(a, "county", "name")].map(norm_county),
-        "metro": a[_col(a, "msa", "code")].str.strip().str.lstrip("0"),
+        "metro": a[_metro_col(a)].str.strip().str.lstrip("0"),
     })
     return out.dropna(subset=["metro"]).drop_duplicates("county_fips")

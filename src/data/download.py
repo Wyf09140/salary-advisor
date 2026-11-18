@@ -27,8 +27,11 @@ def main() -> None:
     for url in SOURCES["lca"]["train_urls"] + SOURCES["lca"]["shift_urls"]:
         fetch(url)
     fetch(SOURCES["onet"]["url"], SOURCES["onet"]["file"])
-    subprocess.run(["kaggle", "datasets", "download", "-d", SOURCES["kaggle"]["dataset"],
-                    "-p", str(RAW / "linkedin"), "--unzip"], check=True)
+    if (RAW / "linkedin" / "postings.csv").exists():
+        print("skip kaggle (linkedin/postings.csv exists)")
+    else:
+        subprocess.run(["kaggle", "datasets", "download", "-d", SOURCES["kaggle"]["dataset"],
+                        "-p", str(RAW / "linkedin"), "--unzip"], check=True)
 
 
 if __name__ == "__main__":

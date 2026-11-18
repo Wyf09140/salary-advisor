@@ -9,24 +9,38 @@ def write_fixtures(raw):
     (raw / "linkedin").mkdir(exist_ok=True)
 
     oews = pd.DataFrame({
-        "AREA": ["41940", "41940", "14460", "14460"],
-        "AREA_TITLE": ["San Jose-Sunnyvale-Santa Clara, CA"] * 2 + ["Boston-Cambridge-Newton, MA-NH"] * 2,
-        "PRIM_STATE": ["CA", "CA", "MA", "MA"],
-        "OCC_CODE": ["15-1252", "15-2051", "15-1252", "15-2051"],
-        "A_PCT10": ["130000", "110000", "95000", "85000"],
-        "A_MEDIAN": ["200000", "170000", "140000", "120000"],
-        "A_PCT90": ["#", "#", "210000", "190000"],
+        # last row: May 2025 publishes real P90 values above the $239,200 cap with no '#'
+        "AREA": ["41940", "41940", "14460", "14460", "41940"],
+        "AREA_TITLE": ["San Jose-Sunnyvale-Santa Clara, CA"] * 2 + ["Boston-Cambridge-Newton, MA-NH"] * 2
+                      + ["San Jose-Sunnyvale-Santa Clara, CA"],
+        "PRIM_STATE": ["CA", "CA", "MA", "MA", "CA"],
+        "OCC_CODE": ["15-1252", "15-2051", "15-1252", "15-2051", "15-1221"],
+        "A_PCT10": ["130000", "110000", "95000", "85000", "150000"],
+        "A_MEDIAN": ["200000", "170000", "140000", "120000", "218420"],
+        "A_PCT90": ["#", "#", "210000", "190000", "310190"],
     })
-    buf = io.BytesIO(); oews.to_excel(buf, index=False)
+    # Real May 2025 zip: file_descriptions.xlsx and BOS (nonmetro) come before MSA in namelist order
+    bos = pd.DataFrame({
+        "AREA": ["0600001"], "AREA_TITLE": ["Eastern Sierra-Mother Lode Region of California nonmetropolitan area"],
+        "PRIM_STATE": ["CA"], "OCC_CODE": ["15-1252"],
+        "A_PCT10": ["70000"], "A_MEDIAN": ["100000"], "A_PCT90": ["150000"],
+    })
+    def xlsx(df):
+        b = io.BytesIO(); df.to_excel(b, index=False); return b.getvalue()
     with zipfile.ZipFile(raw / "oesm25ma.zip", "w") as z:
-        z.writestr("oesm25ma/MSA_M2025_dl.xlsx", buf.getvalue())
+        z.writestr("oesm25ma/", "")
+        z.writestr("oesm25ma/BOS_M2025_dl.xlsx", xlsx(bos))
+        z.writestr("oesm25ma/file_descriptions.xlsx",
+                   xlsx(pd.DataFrame({"File name": ["MSA_M2025_dl.xlsx"], "File contents": ["MSA estimates"]})))
+        z.writestr("oesm25ma/MSA_M2025_dl.xlsx", xlsx(oews))
 
+    # Real May 2025 headers: "May 2025 Area Code", not "MSA code"
     pd.DataFrame({
-        "FIPS code": ["06", "25"], "State abbreviation": ["CA", "MA"],
-        "May 2025 MSA code": ["41940", "14460"],
-        "May 2025 MSA name": ["San Jose-Sunnyvale-Santa Clara, CA", "Boston-Cambridge-Newton, MA-NH"],
-        "County code": ["085", "025"],
-        "County name (or Township name for the New England states)": ["Santa Clara County", "Suffolk County"],
+        "FIPS Code": ["06", "25"], "State": ["California", "Massachusetts"], "State Abbreviation": ["CA", "MA"],
+        "May 2025 Area Code": ["41940", "14460"],
+        "May 2025 Area Title": ["San Jose-Sunnyvale-Santa Clara, CA", "Boston-Cambridge-Newton, MA-NH"],
+        "County Code": ["085", "025"],
+        "County Name": ["Santa Clara County", "Suffolk County"],
     }).to_excel(raw / "area_definitions_m2025.xlsx", index=False)
 
     def lca(fy, wage):

@@ -50,17 +50,21 @@ def extract_years(text: pd.Series) -> pd.Series:
 
 # ---------- OEWS ----------
 def load_oews() -> pd.DataFrame:
+    # The zip holds MSA_M2025_dl.xlsx (metros), BOS_M2025_dl.xlsx (nonmetro areas) and file_descriptions.xlsx
     with zipfile.ZipFile(RAW / SOURCES["oews"]["file"]) as z:
-        name = next(n for n in z.namelist() if n.lower().endswith(".xlsx"))
-        df = pd.read_excel(z.open(name), dtype=str)
+        names = [n for n in z.namelist() if n.lower().endswith("_dl.xlsx")]
+        if not names:
+            raise FileNotFoundError(f"no *_dl.xlsx data file in {z.namelist()}")
+        df = pd.concat([pd.read_excel(z.open(n), dtype=str) for n in names], ignore_index=True)
     df.columns = df.columns.str.upper()
     df = df[df["OCC_CODE"].isin(SOC_CODES)].copy()
-    topcoded = (df["A_PCT90"] == "#").sum()
-    REPORT.append(f"\nOEWS rows with top-coded annual P90 ('#'): {topcoded}\n")
+    # Flag only literal '#' markers: May 2025 publishes real P90 values above the cap without '#'
+    topcoded = df["A_PCT90"].astype(str).str.strip() == "#"
+    REPORT.append(f"\nOEWS rows with top-coded annual P90 ('#'): {int(topcoded.sum())}\n")
     cap = SOURCES["oews_topcode_annual"]
     for c in ["A_PCT10", "A_MEDIAN", "A_PCT90"]:
-        df[c] = pd.to_numeric(df[c].replace("#", cap), errors="coerce")  # '*' = not available
-    df["P90_TOPCODED"] = df["A_PCT90"] >= cap
+        df[c] = pd.to_numeric(df[c].str.strip().replace("#", cap), errors="coerce")  # '*' = not available
+    df["P90_TOPCODED"] = topcoded
     df["AREA"] = df["AREA"].str.strip().str.lstrip("0")
     return df[["AREA", "AREA_TITLE", "PRIM_STATE", "OCC_CODE", "A_PCT10", "A_MEDIAN", "A_PCT90", "P90_TOPCODED"]]
 

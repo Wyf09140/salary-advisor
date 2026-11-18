@@ -35,7 +35,6 @@ onet:
 min_annual_wage: 30000
 max_annual_wage: 500000
 title_match_min_score: 0.55     # cosine threshold for posting title -> SOC
-# OEWS shows '#' for annual wages at or above its top-code. UNVERIFIED for May 2025: 239200 is the May 2024 value;
-# the May 2025 technical notes (bls.gov/oes/2025/may/oes_tec.htm) don't state it. Confirm from the field-description
-# sheet inside oesm25ma.zip once downloaded.
+# OEWS '#' top-code, verified 2026-11-18 in oesm25ma.zip MSA_M2025_dl.xlsx 'Field Descriptions':
+# "# = indicates a wage equal to or greater than $115.00 per hour or $239,200 per year"
 oews_topcode_annual: 239200

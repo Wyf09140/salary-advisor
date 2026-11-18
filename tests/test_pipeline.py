@@ -32,6 +32,9 @@ def test_clean_end_to_end(tmp_path):
 
     baseline = importlib.import_module("src.data.baseline")
     oews = pd.read_parquet(Path(os.environ["SA_PROCESSED"]) / "oews.parquet")
+    assert {"41940", "14460", "600001"} <= set(oews.AREA)  # both MSA and BOS files loaded
+    assert oews.P90_TOPCODED.sum() == 2                     # only the two '#' rows
+    assert not oews[oews.OCC_CODE == "15-1221"].P90_TOPCODED.any()  # real 310,190 is not top-coded
     pred = baseline.baseline_predictions(df, oews)
     assert pred["p50"].notna().all()
     for k in ("SA_RAW", "SA_PROCESSED"):

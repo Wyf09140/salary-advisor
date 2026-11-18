@@ -49,3 +49,8 @@ Outcome (Task 2–3, same session): pip install OK; xgboost needed `brew install
 ### 2026-11-18 · Claude Code (Opus 5.5) · Purpose: explanation
 Prompt: (pasted a Chinese-language project summary written in an earlier chat with another assistant — sections "一、这个项目是什么 / 二、这几天你做了什么 / 三、现在的状态" — followed by) 对吧
 Outcome: Confirmed sections 一–二 against the repo; corrected section 三 (code now pushed, deps installed, tests status, download blocker).
+
+### 2026-11-18 · Claude Code (Opus 5.5) · Purpose: coding
+Prompt: files downloaded. Kaggle data is already in data/raw/linkedin/ (downloaded manually), so make download.py skip the kaggle CLI when data/raw/linkedin/postings.csv exists. Then run make data and make baseline.
+Outcome: download.py skips kaggle when postings.csv exists. Fixed two real-format bugs found before the run (area definitions column "May 2025 Area Code"; OEWS zip has BOS + MSA files and the code read only the first), mirrored both in tests/fixtures.py. Verified top-code $239,200 from the OEWS Field Descriptions sheet. baseline.py falls back to local metrics until src/models/evaluate.py exists.
+Outcome (cont.): make data OK (265,003 final rows). make baseline OK. Also fixed P90_TOPCODED, which flagged 28 real May 2025 P90 values above $239,200 (no '#' markers in the 2025 file); fixture + assertions added.
