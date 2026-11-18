@@ -30,6 +30,6 @@ Write docs/data/data_design.md covering:
 ## Rules
 - Every design decision cites a number from the report or your own check.
 - You may update config/sources.yaml with verified URLs and config/skills.yaml with the agreed vocabulary. Do not rewrite clean.py yet; the checklist is the hand-off.
-- Flag any schema change in a short "Message to model owner" section at the end, since Sophak depends on that schema.
+- Flag any schema change in a short "Message to model owner" section at the end, since Pubudu (models) depends on that schema.
 
 Finally append the prompt you were invoked with to prompts/yifan.md using the template in that file.

@@ -1,4 +1,4 @@
-"""Streamlit front end. Owner: Pubudu. Runs against the stub until models are trained."""
+"""Streamlit front end. Owner: Sophak. Runs against the stub until models are trained."""
 import sys
 from pathlib import Path
 

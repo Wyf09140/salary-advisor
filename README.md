@@ -15,8 +15,8 @@ Baseline: BLS OEWS median wage for the matching occupation and area.
 | Workstream | Owner | Folder |
 | --- | --- | --- |
 | Data | Yifan Wei | `src/data/` |
-| Models | Son Sophak Otra | `src/models/` |
-| Application (frontend) | Pubudu Gunasekara | `src/app/` |
+| Models | Pubudu Gunasekara | `src/models/` |
+| Application (frontend) | Son Sophak Otra | `src/app/` |
 
 ## Deliverables (due Dec 6, 2026)
 
@@ -50,8 +50,8 @@ config/              SOC codes, skill vocabulary, data source settings
 data/raw/            downloaded files (gitignored)
 data/processed/      cleaned outputs (gitignored; regenerate with `make data`)
 src/data/            download, clean, join, baseline           (Yifan)
-src/models/          features, training, evaluation, predict    (Sophak)
-src/app/             resume parser, Streamlit UI                (Pubudu)
+src/models/          features, training, evaluation, predict    (Pubudu)
+src/app/             resume parser, Streamlit UI                (Sophak)
 notebooks/           EDA and experiments
 prompts/             AI prompt logs, one file per member (required for report)
 report/              report source, figures, final PDF

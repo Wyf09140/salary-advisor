@@ -83,3 +83,12 @@ Then: the postings experience filter leaves ~400 rows, too few for the skill-upl
 ```
 (message arrived truncated after "Stage 2 uses all"; interpreted as "all postings rows")
 Outcome: keyword rules + exclusions (incl. "designer") in titles.py; 15-1299 accepted only from rules (none target it, so 0 postings rows). Level counts after all filters: (a) 366, (b) 693, (c) 1,338 = 3.7x (a) -> switched to (c) with early_career column; schema/validate/fixtures/README updated; new tests/test_titles.py; 8/8 tests pass. make data: 292,258 rows (291,286 early_career; postings 1,338). make baseline rerun.
+
+### 2026-11-18 · Claude Code (Opus 5.5) · Purpose: writing
+Prompt:
+```
+好的，Data    Yifan Wei    src/data/
+Models    Son Sophak Otra    src/models/
+Application (frontend)    Pubudu Gunasekara    src/app/这个Otra复制Application Pubudu负责models
+```
+Outcome: Swapped code ownership (interpreted 复制 as 负责): Pubudu Gunasekara -> Models (src/models/), Son Sophak Otra -> Application (src/app/). Updated README, module docstrings, data-designer agent. Report/presentation section assignments left unchanged pending confirmation.

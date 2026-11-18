@@ -1,4 +1,4 @@
-"""Models -> App interface. Owner: Sophak.
+"""Models -> App interface. Owner: Pubudu.
 
 STUB: returns fixed, plausible numbers so the app and tests run before models are trained.
 Replace the bodies once train.py saves models/quantile_models.pkl; keep the signatures and

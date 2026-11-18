@@ -1,4 +1,4 @@
-"""Extract skills and years of experience from a resume. Owner: Pubudu."""
+"""Extract skills and years of experience from a resume. Owner: Sophak."""
 import io
 import re
 from src.config import SKILLS

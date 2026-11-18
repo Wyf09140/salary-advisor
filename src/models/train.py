@@ -1,4 +1,4 @@
-"""Train P10/P50/P90 wage models. Owner: Sophak.
+"""Train P10/P50/P90 wage models. Owner: Pubudu.
 
 PLAN ONLY - not implemented yet.
 
