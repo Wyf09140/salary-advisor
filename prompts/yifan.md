@@ -71,3 +71,15 @@ Good work. Next, in this order:
 Rerun make data and make baseline after steps 2–3, then commit and push. Log this message in prompts/yifan.md.
 ```
 Outcome (steps 1, 2, 4 + step-3 diagnosis): .gitignore "/models/" (src/models no longer ignored); src/models/{__init__,evaluate,predict,train}.py added; baseline fallback removed; 6/6 tests pass. FY2026 Q4 added to shift_urls; README limitation + "Notes for the report". Title diagnosis: 354 keyword hits vs 483 matched; 103/109 keyword misses map to non-tech or out-of-scope SOCs with high scores (O*NET exact-title ties broken arbitrarily, e.g. Data Analyst -> 19-3022), not a threshold problem. Proposed keyword rules -> 552 matched; awaiting approval before applying and rerunning make data.
+
+### 2026-11-18 · Claude Code (Opus 5.5) · Purpose: coding
+Prompt:
+```
+OK, apply the keyword rules + exclusion list, with two tweaks: add "designer" to the exclusion list, and for 15-1299 accept only rule-based matches (drop TF-IDF matches to 15-1299). Add fixture titles for both.
+
+Then: the postings experience filter leaves ~400 rows, too few for the skill-uplift model. Stage 1's early-career scope comes from LCA Level I/II, so postings don't need the same filter.
+1. Report counts after all filters for: (a) Entry/Associate only, (b) + missing experience level, (c) all levels except Internship/Executive/Director.
+2. If (c) >= 3x (a), switch postings to (c): keep the level in wage_level (entry, associate, mid-senior, unknown) and add a boolean early_career column (True for LCA I/II and postings entry/associate). Update schema.py, validate(), fixtures and src/data/README.md: Stage 1 trains on early_career rows; Stage 2 uses all
+```
+(message arrived truncated after "Stage 2 uses all"; interpreted as "all postings rows")
+Outcome: keyword rules + exclusions (incl. "designer") in titles.py; 15-1299 accepted only from rules (none target it, so 0 postings rows). Level counts after all filters: (a) 366, (b) 693, (c) 1,338 = 3.7x (a) -> switched to (c) with early_career column; schema/validate/fixtures/README updated; new tests/test_titles.py; 8/8 tests pass. make data: 292,258 rows (291,286 early_career; postings 1,338). make baseline rerun.

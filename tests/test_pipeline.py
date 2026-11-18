@@ -26,7 +26,14 @@ def test_clean_end_to_end(tmp_path):
     assert (lca.employer == "ACME").sum() == 4           # 'Acme, Inc.' / 'Acme' merged
     assert lca[lca.title == "Data Scientist"].annual_wage.iloc[0] == 65 * 2080
     assert lca.filter(like="skill_").isna().all().all()  # no skills for LCA
-    assert len(post) == 2                                # retail + senior dropped
+    assert sorted(post.title) == ["Data Engineer", "Data Scientist I", "Software Engineer",
+                                  "Software Engineer, New Grad"]  # retail, Director, 15-1299 TF-IDF, designer dropped
+    assert set(post.wage_level) == {"entry", "associate", "mid-senior", "unknown"}
+    assert post.set_index("title").early_career.to_dict() == {
+        "Software Engineer, New Grad": True, "Data Scientist I": True,
+        "Software Engineer": False, "Data Engineer": False}
+    assert lca.early_career.all() and df.early_career.dtype == bool
+    assert post.set_index("title").soc_code["Data Engineer"] == "15-1243"  # keyword rule
     assert post.metro.notna().all()                      # fips -> metro
     assert post.iloc[0].skill_python == 1 and post.iloc[0].years_exp == 2
 

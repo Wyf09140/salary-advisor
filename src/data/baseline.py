@@ -24,10 +24,10 @@ def main() -> None:
     df = pd.read_parquet(PROCESSED / "train.parquet")
     oews = pd.read_parquet(PROCESSED / "oews.parquet")
     pred = baseline_predictions(df, oews)
-    for (src, split), g in df.groupby(["source", "split"]):
+    for (src, split, early), g in df.groupby(["source", "split", "early_career"]):
         p = pred.loc[g.index].dropna()
         y = g.loc[p.index, "annual_wage"]
-        print(f"{src:9s} {split:6s} n={len(y):>7,}  MAE(log)={mae_log(y, p['p50']):.4f}  "
+        print(f"{src:9s} {split:6s} early_career={str(early):5s} n={len(y):>7,}  MAE(log)={mae_log(y, p['p50']):.4f}  "
               f"pinball50={pinball(y, p['p50'], 0.5):,.0f}  cov80={coverage(y, p['p10'], p['p90']):.3f}")
 
 

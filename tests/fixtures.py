@@ -10,14 +10,14 @@ def write_fixtures(raw):
 
     oews = pd.DataFrame({
         # last row: May 2025 publishes real P90 values above the $239,200 cap with no '#'
-        "AREA": ["41940", "41940", "14460", "14460", "41940"],
+        "AREA": ["41940", "41940", "14460", "14460", "41940", "14460"],
         "AREA_TITLE": ["San Jose-Sunnyvale-Santa Clara, CA"] * 2 + ["Boston-Cambridge-Newton, MA-NH"] * 2
-                      + ["San Jose-Sunnyvale-Santa Clara, CA"],
-        "PRIM_STATE": ["CA", "CA", "MA", "MA", "CA"],
-        "OCC_CODE": ["15-1252", "15-2051", "15-1252", "15-2051", "15-1221"],
-        "A_PCT10": ["130000", "110000", "95000", "85000", "150000"],
-        "A_MEDIAN": ["200000", "170000", "140000", "120000", "218420"],
-        "A_PCT90": ["#", "#", "210000", "190000", "310190"],
+                      + ["San Jose-Sunnyvale-Santa Clara, CA", "Boston-Cambridge-Newton, MA-NH"],
+        "PRIM_STATE": ["CA", "CA", "MA", "MA", "CA", "MA"],
+        "OCC_CODE": ["15-1252", "15-2051", "15-1252", "15-2051", "15-1221", "15-1243"],
+        "A_PCT10": ["130000", "110000", "95000", "85000", "150000", "100000"],
+        "A_MEDIAN": ["200000", "170000", "140000", "120000", "218420", "150000"],
+        "A_PCT90": ["#", "#", "210000", "190000", "310190", "200000"],
     })
     # Real May 2025 zip: file_descriptions.xlsx and BOS (nonmetro) come before MSA in namelist order
     bos = pd.DataFrame({
@@ -63,23 +63,36 @@ def write_fixtures(raw):
     with zipfile.ZipFile(raw / "db_31_0_text.zip", "w") as z:
         z.writestr("db_31_0_text/Occupation Data.txt",
                    "O*NET-SOC Code\tTitle\tDescription\n15-1252.00\tSoftware Developers\tx\n"
-                   "15-2051.00\tData Scientists\tx\n41-2031.00\tRetail Salespersons\tx\n")
+                   "15-2051.00\tData Scientists\tx\n41-2031.00\tRetail Salespersons\tx\n"
+                   "15-1299.09\tInformation Technology Project Managers\tx\n"
+                   "27-1024.00\tGraphic Designers\tx\n")
         z.writestr("db_31_0_text/Alternate Titles.txt",
                    "O*NET-SOC Code\tTitle\tAlternate Title\tShort Title\tSource(s)\n"
                    "15-1252.00\tSoftware Developers\tSoftware Engineer\t\t\n"
                    "15-2051.00\tData Scientists\tData Scientist\t\t\n"
-                   "41-2031.00\tRetail Salespersons\tSales Associate\t\t\n")
+                   "41-2031.00\tRetail Salespersons\tSales Associate\t\t\n"
+                   "15-1299.09\tInformation Technology Project Managers\tProject Manager\t\t\n"
+                   "27-1024.00\tGraphic Designers\tUX Designer\t\t\n")
 
+    # Rows 0-1 early career; 2 non-tech; 3 mid-senior (kept, not early career); 4 missing level
+    # (kept as "unknown"); 5 Director (dropped); 6 exact O*NET 15-1299 title via TF-IDF (dropped:
+    # 15-1299 is rule-only); 7 designer title that would hit the front-end rule (excluded -> dropped)
+    titles = ["Software Engineer, New Grad", "Data Scientist I", "Retail Sales Associate", "Software Engineer",
+              "Data Engineer", "Director of Software Engineering", "Project Manager", "UX Designer, Front End"]
+    n = len(titles)
     pd.DataFrame({
-        "title": ["Software Engineer, New Grad", "Data Scientist I", "Retail Sales Associate", "Software Engineer"],
-        "description": ["Python and SQL. 2+ years of experience required.", "PyTorch, Spark", "Retail", "Senior role"],
-        "company_name": ["Acme", "Delta Inc", "Shop", "Epsilon"],
-        "location": ["San Jose, CA", "Boston, MA", "Austin, TX", "Remote, CA"],
-        "normalized_salary": [140000.0, 125000.0, 40000.0, 300000.0],
-        "currency": ["USD"] * 4,
-        "compensation_type": ["BASE_SALARY"] * 4,
-        "work_type": ["FULL_TIME"] * 4,
-        "formatted_experience_level": ["Entry level", "Associate", "Entry level", "Mid-Senior level"],
-        "fips": [6085.0, 25025.0, 48453.0, None],
-        "listed_time": [1.7e12, 1.71e12, 1.7e12, 1.7e12],
+        "title": titles,
+        "description": ["Python and SQL. 2+ years of experience required.", "PyTorch, Spark", "Retail", "Senior role",
+                        "Spark and SQL", "Lead teams", "Plan projects", "Figma"],
+        "company_name": ["Acme", "Delta Inc", "Shop", "Epsilon", "Zeta", "Eta", "Theta", "Iota"],
+        "location": ["San Jose, CA", "Boston, MA", "Austin, TX", "San Jose, CA", "Boston, MA", "San Jose, CA",
+                     "San Jose, CA", "San Jose, CA"],
+        "normalized_salary": [140000.0, 125000.0, 40000.0, 300000.0, 150000.0, 400000.0, 120000.0, 110000.0],
+        "currency": ["USD"] * n,
+        "compensation_type": ["BASE_SALARY"] * n,
+        "work_type": ["FULL_TIME"] * n,
+        "formatted_experience_level": ["Entry level", "Associate", "Entry level", "Mid-Senior level", None,
+                                       "Director", "Entry level", "Entry level"],
+        "fips": [6085.0, 25025.0, 48453.0, 6085.0, 25025.0, 6085.0, 6085.0, 6085.0],
+        "listed_time": [1.7e12, 1.71e12, 1.7e12, 1.7e12, 1.7e12, 1.7e12, 1.7e12, 1.7e12],
     }).to_csv(raw / "linkedin" / "postings.csv", index=False)

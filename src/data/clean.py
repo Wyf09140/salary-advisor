@@ -18,6 +18,8 @@ _CORP = re.compile(r"\b(INC|LLC|L L C|CORP|CORPORATION|CO|COMPANY|LTD|LP|LLP|PLL
 _YEARS = re.compile(r"(\d{1,2})\s*\+?\s*(?:(?:-|–|to)\s*\d{1,2}\s*)?years?\s+(?:of\s+)?"
                     r"(?:\w+\s+){0,3}experience", re.I)
 
+POSTING_LEVELS = {"Entry level": "entry", "Associate": "associate", "Mid-Senior level": "mid-senior"}
+
 REPORT: list[str] = []
 
 
@@ -92,6 +94,7 @@ def load_lca_file(path, split: str) -> pd.DataFrame:
         "state": df["WORKSITE_STATE"].str.strip().str.upper(),
         "county_norm": df.get("WORKSITE_COUNTY", pd.Series(index=df.index, dtype=str)).map(norm_county),
         "wage_level": df["PW_WAGE_LEVEL"].str.strip(),
+        "early_career": True,  # filtered to PW_WAGE_LEVEL I/II above
         "years_exp": np.nan,
         "year": fy,
         "annual_wage": to_annual(df["WAGE_RATE_OF_PAY_FROM"], df["WAGE_UNIT_OF_PAY"]),
@@ -131,8 +134,9 @@ def load_postings(xwalk: pd.DataFrame, onet: pd.DataFrame) -> pd.DataFrame:
     if "work_type" in p:
         p = p[p["work_type"].fillna("FULL_TIME") == "FULL_TIME"]
     log("  salary present, USD, base, full-time", len(p))
-    p = p[p["formatted_experience_level"].isin(SOURCES["kaggle"]["experience_levels"])]
-    log(f"  experience {SOURCES['kaggle']['experience_levels']}", len(p))
+    k = SOURCES["kaggle"]
+    p = p[~p["formatted_experience_level"].isin(k["exclude_levels"])]
+    log(f"  experience level not in {k['exclude_levels']}", len(p))
 
     soc, score = match_titles(p["title"], onet, SOURCES["title_match_min_score"])
     p = p.assign(soc_code=soc.values, match_score=score.values)
@@ -153,7 +157,8 @@ def load_postings(xwalk: pd.DataFrame, onet: pd.DataFrame) -> pd.DataFrame:
         "county_fips": p["county_fips"],
         "metro": p["metro"],
         "state": p["state"],
-        "wage_level": p["formatted_experience_level"].str.lower().str.replace(" level", ""),
+        "wage_level": p["formatted_experience_level"].map(POSTING_LEVELS).fillna("unknown"),
+        "early_career": p["formatted_experience_level"].isin(k["early_career_levels"]),
         "years_exp": extract_years(p["description"]),
         "year": pd.to_datetime(p["listed_time"], unit="ms", errors="coerce").dt.year,
         "annual_wage": p["normalized_salary"],
@@ -177,13 +182,14 @@ def main() -> None:
     df = df[df["annual_wage"].between(lo, hi)].dropna(subset=["title", "state"])
     df = df[df["employer"].str.len() > 0]
     log("Final rows (wage in range, state known)", len(df))
+    log("  of which early_career", int(df["early_career"].sum()))
 
     df = df[ALL_COLUMNS]
     validate(df)
     df.to_parquet(PROCESSED / "train.parquet", index=False)
 
-    summary = df.groupby(["source", "split", "soc_code"]).size().unstack(fill_value=0)
-    REPORT.extend(["", "## Rows by source, split and SOC", "", summary.to_markdown()])
+    summary = df.groupby(["source", "split", "early_career", "soc_code"]).size().unstack(fill_value=0)
+    REPORT.extend(["", "## Rows by source, split, early_career and SOC", "", summary.to_markdown()])
     (PROCESSED / "data_report.md").write_text("\n".join(REPORT))
     print(summary)
 

@@ -1,7 +1,12 @@
 """Map free-text job titles to 2018 SOC codes using O*NET titles. Owner: Yifan.
 
-TF-IDF character n-grams against every O*NET title (all occupations, so non-tech postings
-map to non-tech SOCs and get filtered out), keeping the best match above a threshold.
+1. Keyword rules on the raw title (first hit wins), skipped for titles on the exclusion list.
+   These fix common titles O*NET gets wrong: exact-title ties broken arbitrarily ("Data Analyst"
+   is an exact title under 7 SOCs) and out-of-scope SOCs ("Java Developer" -> 15-1251).
+2. Otherwise TF-IDF character n-grams against every O*NET title (all occupations, so non-tech
+   postings map to non-tech SOCs and get filtered out), keeping the best match above a threshold.
+   TF-IDF matches to RULE_ONLY_SOCS (15-1299, a catch-all that attracts "Project Manager",
+   "Data Center Technician", ...) are dropped; those SOCs are accepted only from rules.
 """
 import re
 import zipfile
@@ -12,6 +17,31 @@ from src.config import RAW, SOURCES
 
 _NOISE = re.compile(r"\b(sr|senior|jr|junior|lead|principal|staff|intern|i{1,3}|iv|\d+|remote|hybrid|"
                     r"new grad|entry level|associate|level)\b")
+
+
+EXCLUDE = re.compile(r"business developer|business development|curriculum developer|account (executive|manager)|"
+                     r"\bsales\b|technical writer|information developer|real estate|recruit|talent|"
+                     r"land developer|designer", re.I)
+RULES = [(re.compile(p, re.I), soc) for p, soc in [
+    (r"\bsdet\b|software tester|\b(qa|quality assurance|test|testing)\b.*\b(engineer|analyst|tester|automation)\b",
+     "15-1253"),
+    (r"\bweb developer\b|\bfront[- ]?end\b|\bui (developer|engineer)\b", "15-1254"),
+    (r"\bdata scientist|\bmachine learning\b|\bml engineer|\bai engineer|\bbusiness intelligence\b|"
+     r"\bbi (developer|analyst|engineer)\b|\bdata analyst\b", "15-2051"),
+    (r"\bdata engineer|\betl developer|\bdata warehouse", "15-1243"),
+    (r"\bdatabase administrator\b|\bdba\b", "15-1242"),
+    (r"\bsoftware (engineer|developer|development)|\bback[- ]?end\b|\bfull[- ]?stack\b|\bapplication developer\b|"
+     r"\b(java|python|\.net|c\+\+|c#|ios|android|mobile|react|angular|node(\.js)?|golang|ruby|php|salesforce|sql) "
+     r"(developer|engineer)\b", "15-1252"),
+]]
+RULE_ONLY_SOCS = {"15-1299"}
+
+
+def rule_soc(title) -> str | None:
+    t = str(title)
+    if EXCLUDE.search(t):
+        return None
+    return next((soc for rx, soc in RULES if rx.search(t)), None)
 
 
 def norm_title(t) -> str:
@@ -54,4 +84,5 @@ def match_titles(titles: pd.Series, onet: pd.DataFrame, min_score: float, chunk:
             best_code[t], best_score[t] = codes[j], float(v)
     soc = q_norm.map(best_code)
     score = q_norm.map(best_score)
-    return soc.where(score >= min_score), score
+    tfidf = soc.where((score >= min_score) & ~soc.isin(RULE_ONLY_SOCS))
+    return titles.map(rule_soc).fillna(tfidf), score

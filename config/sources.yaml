@@ -29,7 +29,9 @@ lca:
   wage_levels: [I, II]          # early-career proxy (Level I ~ 17th pct, Level II ~ 34th pct)
 kaggle:
   dataset: arshkon/linkedin-job-postings
-  experience_levels: [Entry level, Associate]
+  # Postings keep all levels except these; early_career = Entry level / Associate (see src/data/README.md)
+  exclude_levels: [Internship, Executive, Director]
+  early_career_levels: [Entry level, Associate]
 onet:
   # https://www.onetcenter.org/database.html -> O*NET 31.0 -> Text (ZIP)
   url: https://www.onetcenter.org/dl_files/database/db_31_0_text.zip

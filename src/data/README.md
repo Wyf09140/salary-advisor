@@ -12,14 +12,23 @@
 | --- | --- | --- | --- |
 | DOL LCA FY2025 (`split=train`) | Certified, H-1B, full-time, tech SOC, PW level I/II | WORKSITE_COUNTY + STATE → county → metro | `wage_level` I/II |
 | DOL LCA FY2026 Q1–Q3 (`split=shift`) | same | same | same |
-| Kaggle arshkon postings (`split=train`) | USD base salary, full-time, Entry/Associate, title matched to tech SOC | `fips` → metro | `wage_level` entry/associate, `years_exp` from description |
+| Kaggle arshkon postings (`split=train`) | USD base salary, full-time, all levels except Internship/Executive/Director, title matched to tech SOC | `fips` → metro | `wage_level` entry/associate/mid-senior/unknown, `early_career` = entry/associate, `years_exp` from description |
 | BLS OEWS May 2025 | tech SOCs | metro AREA code | none (baseline only) |
 | O*NET 31.0 | all titles | none | none (title → SOC matching) |
 
 ## Notes for the model workstream
 
+- **`early_career` defines the Stage 1 scope.** It is True for every LCA row (Level I/II) and for postings
+  with level Entry/Associate. **Stage 1** (wage range) trains on `early_career` rows only; **Stage 2**
+  (skill uplift) uses all postings rows, with `wage_level` as a feature. Postings keep mid-senior and
+  unknown levels because the entry/associate filter alone left ~370 rows, too few for Stage 2.
+- **Posting titles → SOC:** keyword rules first (with an exclusion list, e.g. "designer", "business
+  developer"), then TF-IDF against O*NET titles. TF-IDF matches to 15-1299 are dropped (that catch-all
+  attracts "Project Manager", "Data Center Technician"); 15-1299 is accepted only from rules, and no
+  rule currently targets it.
 - **Skill columns are NaN for LCA rows** (LCA has no job description). Train the wage-range model
-  (Stage 1) on all rows without skill features; train the skill-uplift model (Stage 2) on postings only.
+  (Stage 1) on `early_career` rows without skill features; train the skill-uplift model (Stage 2) on
+  all postings rows.
 - **`split=shift`** is FY2026 LCA, filed under the wage-weighted H-1B selection rule. Use it as an
   out-of-time test, not for training.
 - Group the train/test split by `employer` (already normalized: suffixes and punctuation removed).
