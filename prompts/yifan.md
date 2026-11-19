@@ -132,3 +132,10 @@ Prompt:
 好，先跑
 ```
 Outcome: clean.py dedups LCA on CASE_NUMBER (latest decision, before filters): 1,150,409 raw -> 1,137,178; train 161,039 -> 158,250, shift unchanged 129,881. New city_metro.parquet (12,381 cities from LCA worksites) + geo.location_to_metro(): LinkedIn "City, ST" match 53.3% -> 95.2%. titles.TitleMatcher builds the TF-IDF index once. Fixtures/tests cover dedup, city lookup, fallback, matcher; 8/8 pass. README: manual download steps, FY2026 Q1–Q4.
+
+### 2026-11-18 · Claude Code (Opus 5.5) · Purpose: writing
+Prompt:
+```
+只回答对zack的问题，不要回答otra的问题
+```
+Outcome: Revised the draft reply to the models owner to answer only the questions addressed to Zack (removed the dropdown suggestion to Otra).
