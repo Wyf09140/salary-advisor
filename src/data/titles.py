@@ -67,22 +67,48 @@ def load_onet_titles() -> pd.DataFrame:
     return t[t["norm"] != ""].drop_duplicates(["soc_code", "norm"])
 
 
+class TitleMatcher:
+    """Title -> SOC with the TF-IDF index built once; reuse one instance at prediction time.
+
+    >>> m = TitleMatcher()                      # needs data/raw/db_31_0_text.zip
+    >>> m.soc("Software Engineer, New Grad")    # '15-1252'
+    >>> m.soc("Retail Sales Associate")         # '41-2031': a match, but not a target SOC
+    >>> m.soc("Project Manager")                # None: no match (15-1299 is rule-only)
+
+    Check `code in src.config.SOC_CODES` to know whether the title is in the project's scope.
+    """
+
+    def __init__(self, onet: pd.DataFrame | None = None, min_score: float | None = None):
+        self.onet = load_onet_titles() if onet is None else onet
+        self.min_score = SOURCES["title_match_min_score"] if min_score is None else min_score
+        self.vec = TfidfVectorizer(analyzer="char_wb", ngram_range=(2, 4), min_df=1, sublinear_tf=True)
+        self.ref = self.vec.fit_transform(self.onet["norm"])
+        self.codes = self.onet["soc_code"].to_numpy()
+
+    def match(self, titles: pd.Series, chunk: int = 5000):
+        """Return (soc_code, score) Series aligned with `titles`; soc is NaN below threshold."""
+        titles = pd.Series(titles)
+        q_norm = titles.map(norm_title)
+        uniq = q_norm.drop_duplicates()
+        best_code, best_score = {}, {}
+        for i in range(0, len(uniq), chunk):
+            part = uniq.iloc[i:i + chunk]
+            sims = self.vec.transform(part) @ self.ref.T
+            idx = np.asarray(sims.argmax(axis=1)).ravel()
+            val = np.asarray(sims.max(axis=1).todense()).ravel()
+            for t, j, v in zip(part, idx, val):
+                best_code[t], best_score[t] = self.codes[j], float(v)
+        soc = q_norm.map(best_code)
+        score = q_norm.map(best_score)
+        tfidf = soc.where((score >= self.min_score) & ~soc.isin(RULE_ONLY_SOCS))
+        return titles.map(rule_soc).fillna(tfidf), score
+
+    def soc(self, title) -> str | None:
+        """Best SOC for one title (any occupation), or None if nothing passes the threshold."""
+        code = self.match(pd.Series([title]))[0].iloc[0]
+        return None if pd.isna(code) else code
+
+
 def match_titles(titles: pd.Series, onet: pd.DataFrame, min_score: float, chunk: int = 5000):
     """Return (soc_code, score) Series aligned with `titles`."""
-    vec = TfidfVectorizer(analyzer="char_wb", ngram_range=(2, 4), min_df=1, sublinear_tf=True)
-    ref = vec.fit_transform(onet["norm"])
-    q_norm = titles.map(norm_title)
-    uniq = q_norm.drop_duplicates()
-    best_code, best_score = {}, {}
-    codes = onet["soc_code"].to_numpy()
-    for i in range(0, len(uniq), chunk):
-        part = uniq.iloc[i:i + chunk]
-        sims = vec.transform(part) @ ref.T
-        idx = np.asarray(sims.argmax(axis=1)).ravel()
-        val = np.asarray(sims.max(axis=1).todense()).ravel()
-        for t, j, v in zip(part, idx, val):
-            best_code[t], best_score[t] = codes[j], float(v)
-    soc = q_norm.map(best_code)
-    score = q_norm.map(best_score)
-    tfidf = soc.where((score >= min_score) & ~soc.isin(RULE_ONLY_SOCS))
-    return titles.map(rule_soc).fillna(tfidf), score
+    return TitleMatcher(onet, min_score).match(titles, chunk)

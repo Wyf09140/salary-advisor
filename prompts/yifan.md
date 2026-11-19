@@ -99,3 +99,36 @@ Prompt:
 报告和视频先别写。谁都不负责
 ```
 Outcome: Cleared all owner/presenter names in report/README.md and presentation/README.md (now TBD); section lists and format requirements kept. No report or video content written.
+
+### 2026-11-18 · Claude Code (Opus 5.5) · Purpose: explanation / research
+Prompt:
+```
+<pasted message from teammate (models owner)>
+guys,  starting the models side, a few things I need:
+
+zack:
+
+Could you send me train.parquet and oews.parquet (Drive link is fine)? Saves me a 1 GB download.
+Are the DOL quarterly LCA files cumulative within a year? If Q4 already includes Q1–Q3, stacking all four would count filings more than once.
+Is years_exp always empty for LCA rows?
+
+Both: 
+predict() gets a raw job title and a location like "San Jose, CA", but the model is trained on SOC code + metro. So at prediction time I have to convert them the same way your pipeline does.
+
+Zack, can I reuse your title→SOC matcher from titles.py? Is there a "City, ST" → metro helper in geo.py?
+
+Otra, will the app send location as free text or from a dropdown? A dropdown would make this much more reliable.
+
+No changes to the interface, just want us aligned. Thanks
+</pasted message>
+
+这是我team发给我的，分析理解下告诉我啥意思，我应该怎么做
+```
+Outcome: Checked LCA files: not cumulative (each covers its own quarter's decision dates); ~1.1% of CASE_NUMBERs repeat across files. years_exp is always NaN for LCA. No City,ST helper exists; principal-city match on OEWS titles = 53%. Proposed CASE_NUMBER dedup, LCA-based city→metro helper, cached TitleMatcher; drafted English reply.
+
+### 2026-11-18 · Claude Code (Opus 5.5) · Purpose: coding
+Prompt:
+```
+好，先跑
+```
+Outcome: clean.py dedups LCA on CASE_NUMBER (latest decision, before filters): 1,150,409 raw -> 1,137,178; train 161,039 -> 158,250, shift unchanged 129,881. New city_metro.parquet (12,381 cities from LCA worksites) + geo.location_to_metro(): LinkedIn "City, ST" match 53.3% -> 95.2%. titles.TitleMatcher builds the TF-IDF index once. Fixtures/tests cover dedup, city lookup, fallback, matcher; 8/8 pass. README: manual download steps, FY2026 Q1–Q4.

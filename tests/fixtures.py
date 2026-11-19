@@ -45,6 +45,8 @@ def write_fixtures(raw):
 
     def lca(fy, wage):
         return pd.DataFrame({
+            "CASE_NUMBER": [f"I-200-{fy}-{i}" for i in range(5)],
+            "DECISION_DATE": [f"{fy - 1}-12-15"] * 5,
             "CASE_STATUS": ["Certified", "Certified", "Certified", "Withdrawn", "Certified"],
             "VISA_CLASS": ["H-1B"] * 5,
             "FULL_TIME_POSITION": ["Y"] * 5,
@@ -53,12 +55,16 @@ def write_fixtures(raw):
             "PW_WAGE_LEVEL": ["I", "II", "IV", "I", "I"],
             "WAGE_RATE_OF_PAY_FROM": [str(wage), "65", "250000", "70000", "100000"],
             "WAGE_UNIT_OF_PAY": ["Year", "Hour", "Year", "Year", "Year"],
+            "WORKSITE_CITY": ["San Jose", "Boston", "Mountain View", "Boston", "San Jose"],
             "WORKSITE_COUNTY": ["SANTA CLARA", "SUFFOLK", "SANTA CLARA", "SUFFOLK", "SANTA CLARA"],
             "WORKSITE_STATE": ["CA", "MA", "CA", "MA", "CA"],
             "EMPLOYER_NAME": ["Acme, Inc.", "Beta Corp", "Acme Inc", "Gamma LLC", "Acme"],
         })
     lca(2025, 150000).to_excel(raw / "LCA_Disclosure_Data_FY2025_Q1.xlsx", index=False)
-    lca(2026, 180000).to_excel(raw / "LCA_Disclosure_Data_FY2026_Q1.xlsx", index=False)
+    # FY2025 case I-200-2025-0 reappears in the FY2026 file, withdrawn later: latest decision wins -> dropped
+    fy26 = lca(2026, 180000)
+    again = lca(2025, 150000).iloc[[0]].assign(CASE_STATUS="Certified - Withdrawn", DECISION_DATE="2025-12-20")
+    pd.concat([fy26, again], ignore_index=True).to_excel(raw / "LCA_Disclosure_Data_FY2026_Q1.xlsx", index=False)
 
     with zipfile.ZipFile(raw / "db_31_0_text.zip", "w") as z:
         z.writestr("db_31_0_text/Occupation Data.txt",

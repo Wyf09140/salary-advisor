@@ -1,9 +1,13 @@
 # Data pipeline (owner: Yifan)
 
-`make data` downloads everything into `data/raw/`, then writes:
+**Raw data:** BLS and DOL block scripted downloads (HTTP 403), so download these in a browser into
+`data/raw/` (URLs in `config/sources.yaml`): `oesm25ma.zip`, `area_definitions_m2025.xlsx`, and the eight
+`LCA_Disclosure_Data_FY2025_Q1..Q4` / `FY2026_Q1..Q4` files. Put the Kaggle dataset in `data/raw/linkedin/`
+(or let the kaggle CLI fetch it). `make data` skips files that already exist, fetches O*NET, then writes:
 
 - `data/processed/train.parquet`: one row per wage observation (schema in `schema.py`)
 - `data/processed/oews.parquet`: OEWS May 2025 P10/P50/P90 by metro and SOC
+- `data/processed/city_metro.parquet`: (city, state) → metro lookup built from LCA worksites, used by `geo.city_to_metro`
 - `data/processed/data_report.md`: row counts after each filter (paste into the report)
 
 ## Sources and filters
@@ -11,13 +15,26 @@
 | Source | Kept rows | Location key | Experience proxy |
 | --- | --- | --- | --- |
 | DOL LCA FY2025 (`split=train`) | Certified, H-1B, full-time, tech SOC, PW level I/II | WORKSITE_COUNTY + STATE → county → metro | `wage_level` I/II |
-| DOL LCA FY2026 Q1–Q3 (`split=shift`) | same | same | same |
+| DOL LCA FY2026 Q1–Q4 (`split=shift`) | same | same | same |
 | Kaggle arshkon postings (`split=train`) | USD base salary, full-time, all levels except Internship/Executive/Director, title matched to tech SOC | `fips` → metro | `wage_level` entry/associate/mid-senior/unknown, `early_career` = entry/associate, `years_exp` from description |
 | BLS OEWS May 2025 | tech SOCs | metro AREA code | none (baseline only) |
 | O*NET 31.0 | all titles | none | none (title → SOC matching) |
 
 ## Notes for the model workstream
 
+- **Prediction-time conversion (use the same code as the pipeline):**
+  ```python
+  from src.data.titles import TitleMatcher
+  from src.data.geo import location_to_metro
+  matcher = TitleMatcher()                    # build once (needs data/raw/db_31_0_text.zip)
+  soc = matcher.soc("Software Engineer, New Grad")  # '15-1252'; None = no match; check `in SOC_CODES`
+  metro, state = location_to_metro("San Jose, CA")  # ('41940', 'CA'); metro None -> fall back to state
+  ```
+  `location_to_metro` checks the LCA worksite city table, then principal cities in OEWS area titles.
+- **LCA quarterly files are not cumulative** (each covers its own quarter's decision dates), but ~1% of
+  `CASE_NUMBER`s reappear in a later file (e.g. certified, then withdrawn). The pipeline keeps each case's
+  latest decision before filtering, so no case appears twice or in both `train` and `shift`.
+- **`years_exp` is always NaN for LCA rows** (no experience field in LCA); postings have it for ~54% of rows.
 - **`early_career` defines the Stage 1 scope.** It is True for every LCA row (Level I/II) and for postings
   with level Entry/Associate. **Stage 1** (wage range) trains on `early_career` rows only; **Stage 2**
   (skill uplift) uses all postings rows, with `wage_level` as a feature. Postings keep mid-senior and

@@ -8,7 +8,7 @@ import zipfile
 import numpy as np
 import pandas as pd
 from src.config import RAW, PROCESSED, SOURCES, SOC_CODES, SKILLS
-from src.data.geo import load_crosswalk, norm_county
+from src.data.geo import load_crosswalk, norm_city, norm_county
 from src.data.schema import ALL_COLUMNS, SKILL_COLUMNS, validate
 from src.data.titles import load_onet_titles, match_titles
 
@@ -72,35 +72,70 @@ def load_oews() -> pd.DataFrame:
 
 
 # ---------- LCA ----------
-def load_lca_file(path, split: str) -> pd.DataFrame:
+LCA_COLUMNS = ["CASE_NUMBER", "DECISION_DATE", "CASE_STATUS", "VISA_CLASS", "FULL_TIME_POSITION", "SOC_CODE",
+               "PW_WAGE_LEVEL", "JOB_TITLE", "WORKSITE_CITY", "WORKSITE_COUNTY", "WORKSITE_STATE",
+               "WAGE_RATE_OF_PAY_FROM", "WAGE_UNIT_OF_PAY", "EMPLOYER_NAME"]
+
+
+def read_lca_file(path, split: str) -> pd.DataFrame:
+    """Raw rows of one quarterly file, reduced to LCA_COLUMNS (missing optional columns are NaN)."""
     df = pd.read_excel(path, dtype=str)
     df.columns = df.columns.str.upper()
-    fy = int(re.search(r"FY(\d{4})", path.name).group(1))
     log(f"LCA {path.name}: raw", len(df))
-    keep = (df["CASE_STATUS"].str.strip().str.lower() == "certified")
-    if "VISA_CLASS" in df:
-        keep &= df["VISA_CLASS"].str.strip() == "H-1B"
-    if "FULL_TIME_POSITION" in df:
-        keep &= df["FULL_TIME_POSITION"].str.strip() == "Y"
+    df = df.reindex(columns=LCA_COLUMNS)
+    df["year"] = int(re.search(r"FY(\d{4})", path.name).group(1))
+    df["split"] = split
+    df["file_order"] = path.name
+    return df
+
+
+def dedup_cases(df: pd.DataFrame) -> pd.DataFrame:
+    """Quarterly files are not cumulative, but ~1% of CASE_NUMBERs reappear in a later file
+    (e.g. certified, then withdrawn). Keep each case's latest decision, before any status filter."""
+    if df["CASE_NUMBER"].isna().all():
+        return df
+    df = df.assign(_dec=pd.to_datetime(df["DECISION_DATE"], errors="coerce"))
+    df = df.sort_values(["_dec", "file_order"], na_position="first", kind="stable")
+    has_id = df["CASE_NUMBER"].notna()
+    df = pd.concat([df[has_id].drop_duplicates("CASE_NUMBER", keep="last"), df[~has_id]])
+    return df.drop(columns="_dec").sort_index()
+
+
+def build_city_metro(df: pd.DataFrame, xwalk: pd.DataFrame) -> pd.DataFrame:
+    """(city_norm, state) -> most common metro, from every deduped LCA filing's worksite city and county."""
+    c = pd.DataFrame({"city_norm": df["WORKSITE_CITY"].map(norm_city),
+                      "state": df["WORKSITE_STATE"].str.strip().str.upper(),
+                      "county_norm": df["WORKSITE_COUNTY"].map(norm_county)})
+    m = xwalk[["state", "county_norm", "metro"]].drop_duplicates(["state", "county_norm"])
+    c = c.merge(m, on=["state", "county_norm"], how="inner")
+    c = c[(c["city_norm"] != "") & (c["city_norm"] != "nan")]
+    n = c.groupby(["city_norm", "state", "metro"]).size().rename("n").reset_index()
+    return n.sort_values("n", ascending=False).drop_duplicates(["city_norm", "state"]).reset_index(drop=True)
+
+
+def filter_lca(df: pd.DataFrame) -> pd.DataFrame:
+    keep = df["CASE_STATUS"].str.strip().str.lower() == "certified"
+    keep &= df["VISA_CLASS"].isna() | (df["VISA_CLASS"].str.strip() == "H-1B")
+    keep &= df["FULL_TIME_POSITION"].isna() | (df["FULL_TIME_POSITION"].str.strip() == "Y")
     df = df[keep].copy()
     df["SOC7"] = df["SOC_CODE"].astype(str).str.strip().str[:7]
     df = df[df["SOC7"].isin(SOC_CODES)]
-    log(f"  certified H-1B full-time, tech SOC", len(df))
+    log("  certified H-1B full-time, tech SOC", len(df))
     df = df[df["PW_WAGE_LEVEL"].astype(str).str.strip().isin(SOURCES["lca"]["wage_levels"])]
     log(f"  wage level {'/'.join(SOURCES['lca']['wage_levels'])}", len(df))
     return pd.DataFrame({
         "title": df["JOB_TITLE"],
         "soc_code": df["SOC7"],
         "state": df["WORKSITE_STATE"].str.strip().str.upper(),
-        "county_norm": df.get("WORKSITE_COUNTY", pd.Series(index=df.index, dtype=str)).map(norm_county),
+        "county_norm": df["WORKSITE_COUNTY"].map(norm_county),
         "wage_level": df["PW_WAGE_LEVEL"].str.strip(),
         "early_career": True,  # filtered to PW_WAGE_LEVEL I/II above
         "years_exp": np.nan,
-        "year": fy,
+        "year": df["year"],
         "annual_wage": to_annual(df["WAGE_RATE_OF_PAY_FROM"], df["WAGE_UNIT_OF_PAY"]),
         "employer": norm_employer(df["EMPLOYER_NAME"]),
         "source": "lca",
-        "split": split,
+        "split": df["split"],
     })
 
 
@@ -110,10 +145,14 @@ def load_lca(xwalk: pd.DataFrame) -> pd.DataFrame:
         for url in SOURCES["lca"][key]:
             path = RAW / url.rsplit("/", 1)[-1]
             if path.exists():
-                frames.append(load_lca_file(path, split))
+                frames.append(read_lca_file(path, split))
             else:
                 print(f"missing {path.name}, skipped")
-    df = pd.concat(frames, ignore_index=True)
+    raw = pd.concat(frames, ignore_index=True)
+    raw = dedup_cases(raw)
+    log("LCA all files, deduped on CASE_NUMBER (latest decision)", len(raw))
+    build_city_metro(raw, xwalk).to_parquet(PROCESSED / "city_metro.parquet", index=False)
+    df = filter_lca(raw)
     m = xwalk[["state", "county_norm", "county_fips", "metro"]].drop_duplicates(["state", "county_norm"])
     df = df.merge(m, on=["state", "county_norm"], how="left").drop(columns="county_norm")
     log("LCA total, metro matched", int(df["metro"].notna().sum()))

@@ -1,7 +1,14 @@
-"""County -> OEWS metro crosswalk from BLS area_definitions_m2025.xlsx. Owner: Yifan."""
+"""Location -> OEWS metro. Owner: Yifan.
+
+- load_crosswalk(): county -> metro from BLS area_definitions_m2025.xlsx (used by the pipeline).
+- city_to_metro() / location_to_metro(): "City, ST" -> metro at prediction time, using
+  data/processed/city_metro.parquet (built by `make data` from LCA worksite city + county),
+  then principal cities in OEWS area titles. Returns None when unknown: fall back to state.
+"""
 import re
+from functools import lru_cache
 import pandas as pd
-from src.config import RAW, SOURCES
+from src.config import RAW, PROCESSED, SOURCES
 
 STATE_FIPS = {
     "01": "AL", "02": "AK", "04": "AZ", "05": "AR", "06": "CA", "08": "CO", "09": "CT", "10": "DE",
@@ -19,6 +26,53 @@ def norm_county(name) -> str:
     s = str(name).lower().replace("saint ", "st ").replace("st. ", "st ")
     s = _SUFFIX.sub(" ", s)
     return re.sub(r"[^a-z ]", "", re.sub(r"\s+", " ", s)).strip()
+
+
+def norm_city(name) -> str:
+    s = str(name).lower().replace("saint ", "st ").replace("st. ", "st ").replace("ft. ", "fort ")
+    return re.sub(r"\s+", " ", re.sub(r"[^a-z ]", " ", s)).strip()
+
+
+def parse_location(text) -> tuple[str | None, str | None]:
+    """'San Jose, CA' / 'San Jose, CA 95112' -> ('san jose', 'CA'); a bare 'CA' -> (None, 'CA')."""
+    t = str(text).strip()
+    m = re.match(r"^(.*?),\s*([A-Za-z]{2})\b", t)
+    if m:
+        return (norm_city(m.group(1)) or None), m.group(2).upper()
+    if re.fullmatch(r"[A-Za-z]{2}", t):
+        return None, t.upper()
+    return None, None
+
+
+@lru_cache(maxsize=1)
+def _city_tables() -> tuple[dict, dict]:
+    lca = pd.read_parquet(PROCESSED / "city_metro.parquet")
+    from_lca = dict(zip(zip(lca["city_norm"], lca["state"]), lca["metro"]))
+    oews = pd.read_parquet(PROCESSED / "oews.parquet")[["AREA", "AREA_TITLE"]].drop_duplicates()
+    principal = {}
+    for area, title in oews.itertuples(index=False):
+        if "nonmetropolitan" in title.lower():
+            continue
+        cities, _, states = title.rpartition(", ")
+        for c in cities.split("-"):
+            for st in states.split("-"):
+                principal.setdefault((norm_city(c), st.strip()), area)
+    return from_lca, principal
+
+
+def city_to_metro(city, state) -> str | None:
+    """OEWS metro area code for a city, or None if unknown (caller falls back to state)."""
+    if not city or not state:
+        return None
+    key = (norm_city(city), str(state).strip().upper())
+    from_lca, principal = _city_tables()
+    return from_lca.get(key) or principal.get(key)
+
+
+def location_to_metro(text) -> tuple[str | None, str | None]:
+    """'San Jose, CA' -> (metro or None, state or None)."""
+    city, state = parse_location(text)
+    return city_to_metro(city, state), state
 
 
 def _col(df: pd.DataFrame, *keys: str) -> str:

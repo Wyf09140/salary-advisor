@@ -23,7 +23,9 @@ def test_clean_end_to_end(tmp_path):
     assert "13-2011" not in set(df.soc_code)             # non-tech dropped
     assert set(lca.split) == {"train", "shift"}
     assert lca.metro.notna().all()                       # county name -> metro
-    assert (lca.employer == "ACME").sum() == 4           # 'Acme, Inc.' / 'Acme' merged
+    assert (lca.employer == "ACME").sum() == 3           # 'Acme, Inc.' / 'Acme' merged; 1 case deduped
+    assert not ((lca.split == "train") & (lca.annual_wage == 150000)).any()  # withdrawn later -> dropped
+    assert not (lca.annual_wage == 150000).any()          # and not re-added as shift
     assert lca[lca.title == "Data Scientist"].annual_wage.iloc[0] == 65 * 2080
     assert lca.filter(like="skill_").isna().all().all()  # no skills for LCA
     assert sorted(post.title) == ["Data Engineer", "Data Scientist I", "Software Engineer",
@@ -44,5 +46,18 @@ def test_clean_end_to_end(tmp_path):
     assert not oews[oews.OCC_CODE == "15-1221"].P90_TOPCODED.any()  # real 310,190 is not top-coded
     pred = baseline.baseline_predictions(df, oews)
     assert pred["p50"].notna().all()
+    # prediction-time helpers
+    geo = importlib.import_module("src.data.geo")
+    assert geo.location_to_metro("San Jose, CA") == ("41940", "CA")
+    assert geo.location_to_metro("Mountain View, CA") == ("41940", "CA")  # LCA worksite city table
+    assert geo.location_to_metro("Cambridge, MA") == ("14460", "MA")      # OEWS principal-city fallback
+    assert geo.location_to_metro("Nowhere, TX") == (None, "TX")           # caller falls back to state
+    titles = importlib.import_module("src.data.titles")
+    m = titles.TitleMatcher()
+    assert m.soc("Software Engineer, New Grad") == "15-1252"
+    assert m.soc("Data Scientist I") == "15-2051"
+    assert m.soc("Project Manager") is None                              # 15-1299 rule-only
+    assert m.soc("Retail Sales Associate") == "41-2031"                  # matched, but not a target SOC
+    assert m.soc("Retail Sales Associate") not in importlib.import_module("src.config").SOC_CODES
     for k in ("SA_RAW", "SA_PROCESSED"):
         del os.environ[k]
