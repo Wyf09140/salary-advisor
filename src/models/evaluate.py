@@ -82,13 +82,18 @@ def main() -> None:
     # Imported here: baseline.py imports this module, and tests must not need data files.
     from src.config import PROCESSED
     from src.data.baseline import baseline_predictions
+    from src.models.split import assign_folds
 
     df = pd.read_parquet(PROCESSED / "train.parquet")
     oews = pd.read_parquet(PROCESSED / "oews.parquet")
     df = df[df["early_career"]]  # Stage 1 scope
+    df = df.join(assign_folds(df))
+    # Extra group: shift rows from companies never seen in the train fold
+    df["eval_fold"] = df["fold"].where(~((df["fold"] == "shift") & ~df["shift_seen"]), "shift_unseen")
     preds = {"baseline": baseline_predictions(df, oews)}
-    table = results_table(df, preds)
-    print("Stage 1 (early_career) results. Pinball in USD; cov80 nominal 0.80.\n")
+    table = results_table(df, preds, by=("source", "eval_fold"))
+    print("Stage 1 (early_career) results by fold. Pinball in USD; cov80 nominal 0.80.")
+    print("'shift' = FY2026 rows from companies in the train fold; 'shift_unseen' = all others.\n")
     print(table.to_markdown(index=False, floatfmt=".4f"))
 
 

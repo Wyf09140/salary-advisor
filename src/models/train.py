@@ -10,7 +10,9 @@ Input: data/processed/train.parquet (schema in src/data/schema.py; caveats in sr
    - Location: metro (fall back to state), occupation `soc_code`, `wage_level`, `years_exp`.
    - Skills: `skill_*` columns (postings only; NaN for LCA rows).
 2. Target: log(annual_wage). Predictions are exponentiated back to USD.
-3. Split: GroupShuffleSplit grouped on `employer`, so no employer appears in both train and test.
+3. Split: src/models/split.py. Employer names are collapsed to a company key (all AMAZON * entities
+   -> AMAZON) and each company goes wholly to train or test (stable md5 hash, 20% test), so no
+   company appears in both.
    Rows with split == "shift" (FY2026 LCA, wage-weighted H-1B selection) are held out entirely
    as an out-of-time test set.
 4. Models, one per quantile tau in {0.1, 0.5, 0.9}:
