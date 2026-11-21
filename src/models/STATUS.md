@@ -8,8 +8,8 @@ _Last updated: 2026-11-20 · branch `model/eval-harness` (PR not opened yet; sev
 | --- | --- | --- |
 | 1 | Evaluation harness + baseline table | ✅ done |
 | 2 | Employer-grouped train/test split | ✅ done |
-| 3 | Linear quantile regression (QuantReg) | ⏭ next |
-| 4 | Model vs baseline on same rows, LCA and postings separately | ⬜ |
+| 3 | Linear quantile regression (QuantReg) | ✅ done (train fold only so far) |
+| 4 | Model vs baseline on same rows, LCA and postings separately | ⏭ next (first and only look at test) |
 | 5 | SBERT title embeddings + XGBoost quantile models | ⬜ |
 | 6 | Ablation: with vs without `wage_level` | ⬜ |
 | 7 | Stage 2 skill uplift (postings only) | ⬜ |
@@ -29,8 +29,31 @@ The app keeps running on the stub until Step 8.
   each company wholly in train or test (stable md5 hash, 20% test, same fold for its LCA and postings
   rows); `split == "shift"` rows are always fold `shift`, never trained on. `python -m src.models.split`
   prints the split report.
-- `tests/test_evaluate.py`, `tests/test_split.py`: hand-computed metrics; no company in both folds;
-  shift never in train/test; assignment stable under row shuffling and subsetting.
+- `src/models/features.py`: Stage 1 features, restricted to what `predict()` can compute from title +
+  location: log OEWS median and log(P90/P10) spread for the row's occupation/area, metro-missing flag,
+  SOC one-hot (reference 15-1252). No `wage_level`, source, employer or year.
+- `src/models/train.py`: `fit_quantreg()` (statsmodels QuantReg on log wage, tau 0.1/0.5/0.9),
+  `predict_quantreg()`, `fix_crossing()` (sort + count). `make train` fits on the train fold and reports
+  train-fold metrics only.
+- `tests/test_evaluate.py`, `tests/test_split.py`, `tests/test_train.py`: hand-computed metrics; no company
+  in both folds; shift never in train/test; QuantReg recovers known quantile lines on synthetic data;
+  crossing fix; guard that no predict-time-unavailable column enters the features.
+
+## Step 3: QuantReg on the train fold (in-sample, not a result to claim)
+
+| Model | Source | n | MAE(log) | Pinball50 | Cov80 | Below P10 | Above P90 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| baseline | LCA | 128,278 | 0.2251 | 13,335 | 0.935 | 5.6% | 0.9% |
+| quantreg | LCA | 128,278 | 0.1388 | 7,939 | 0.800 | 10.0% | 10.0% |
+| baseline | postings ⚠ | 291 | 0.2838 | 16,183 | 0.818 | 15.5% | 2.8% |
+| quantreg | postings ⚠ | 291 | 0.2501 | 13,842 | **0.601** | 17.9% | 22.0% |
+
+- Quantile crossing: 0 of 128,569 train rows (expected for a linear model with few features; re-checked on test).
+- `log_bls_p50` coefficient ≈ 0.87-0.89: early-career pay moves less than 1:1 with the local OEWS median.
+- **Fitted almost entirely on LCA** (128,278 vs 291 postings rows), so the interval is calibrated for LCA
+  and too narrow for postings (60% coverage in-sample). Expect the same or worse on test.
+- `metro_missing` ≈ +0.15-0.20: rows without a metro pay more relative to the state fallback (median
+  wage/BLS P50 = 0.96 vs 0.80 with a metro). See data issue below.
 
 ## Split (early-career rows)
 
@@ -78,11 +101,14 @@ The app keeps running on the stub until Step 8.
   data source. Covered by the Step 6 ablation.
 - **Postings employers include staffing agencies** (DICE, JOBOT, PIPER), so `employer` is sometimes the
   recruiter, not the hiring company.
+- **30,101 early-career rows (10.4%) have no county and therefore no metro**, all with `county_fips` null,
+  concentrated in high-wage states (TX 5.5k, MA 3.9k, CA 3.0k, WA 2.0k, NJ 1.6k, CT 1.6k). They fall back to
+  the state median, which is too low for them. Raised with Yifan (CT likely the 2022 planning-region change).
 - `tests/test_pipeline.py` fails on pandas 3.x (`load_oews` reads an xlsx straight from a zip stream).
   Data-side fix; does not affect models.
 
 ## Needs from others
 
-- Nothing blocking right now.
+- Nothing blocking. Yifan: county matching gap (10% of rows, see Known issues).
 - Otra: app location dropdown will use OEWS metro names; models will provide the list in `src/models/`
   (Step 8).
