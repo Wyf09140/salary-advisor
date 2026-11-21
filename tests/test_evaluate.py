@@ -57,3 +57,29 @@ def test_results_table_rejects_duplicate_index():
                       index=[0, 0])
     with pytest.raises(ValueError):
         results_table(df, {"m": pd.DataFrame({"p10": [1.0], "p50": [1.0], "p90": [1.0]})})
+
+
+def test_row_losses_average_to_evaluate_quantiles():
+    from src.models.evaluate import row_losses
+    pred = pd.DataFrame({"p10": P10, "p50": P50, "p90": P90}, dtype=float)
+    means = row_losses(Y, pred).mean()
+    m = evaluate_quantiles(Y, P10, P50, P90)
+    for k in ("mae_log", "pinball10", "pinball50", "pinball90", "cov80"):
+        assert means[k] == pytest.approx(m[k])
+
+
+def test_cluster_bootstrap_ci():
+    from src.models.evaluate import cluster_bootstrap_ci
+    # constant values: zero-width interval at the constant
+    assert cluster_bootstrap_ci([2.0] * 10, list("aabbccddee")) == pytest.approx((2.0, 2.0, 2.0))
+    # clear positive difference: CI excludes 0 and contains the mean
+    rng = np.random.default_rng(1)
+    v = 1.0 + rng.normal(0, 1, 2000)
+    mean, lo, hi = cluster_bootstrap_ci(v, np.arange(2000) // 4, n_boot=500)
+    assert 0 < lo < mean < hi
+    # one dominant cluster widens the interval vs the same data split into many clusters
+    vals = np.r_[np.ones(500), np.zeros(500)]
+    one_big = np.r_[np.zeros(500), np.arange(1, 501)]  # the 500 ones all belong to one company
+    _, lo1, hi1 = cluster_bootstrap_ci(vals, one_big, n_boot=500)
+    _, lo2, hi2 = cluster_bootstrap_ci(vals, np.arange(1000), n_boot=500)
+    assert (hi1 - lo1) > 3 * (hi2 - lo2)

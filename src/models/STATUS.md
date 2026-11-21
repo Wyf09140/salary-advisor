@@ -8,9 +8,9 @@ _Last updated: 2026-11-20 · branch `model/eval-harness` (PR not opened yet; sev
 | --- | --- | --- |
 | 1 | Evaluation harness + baseline table | ✅ done |
 | 2 | Employer-grouped train/test split | ✅ done |
-| 3 | Linear quantile regression (QuantReg) | ✅ done (train fold only so far) |
-| 4 | Model vs baseline on same rows, LCA and postings separately | ⏭ next (first and only look at test) |
-| 5 | SBERT title embeddings + XGBoost quantile models | ⬜ |
+| 3 | Linear quantile regression (QuantReg) | ✅ done |
+| 4 | Model vs baseline on same rows, LCA and postings separately | ✅ done (test fold used once for QuantReg) |
+| 5 | SBERT title embeddings + XGBoost quantile models | ⏭ next |
 | 6 | Ablation: with vs without `wage_level` | ⬜ |
 | 7 | Stage 2 skill uplift (postings only) | ⬜ |
 | 8 | Save models, real `predict()` / `recommend()` (stub stays as fallback) | ⬜ |
@@ -23,7 +23,9 @@ The app keeps running on the stub until Step 8.
 
 - `src/models/evaluate.py`: `evaluate_quantiles()` (MAE on log wage, pinball at 0.1/0.5/0.9, 80% coverage,
   share below P10 / above P90) and `results_table()` (per-group scores, aligned by index, counts dropped
-  rows, flags groups under 300 rows). `make evaluate` prints the baseline table by fold.
+  rows, flags groups under 300 rows), `cluster_bootstrap_ci()` (95% CI resampling whole companies) and
+  `comparison_table()` (paired model-minus-baseline differences). `make evaluate` is the held-out
+  evaluation: fit on train fold, score test and shift folds.
 - `src/models/split.py`: `company_key()` collapses entity variants (AMAZON COM SERVICES, AMAZON WEB
   SERVICES, ... -> AMAZON; generic first words like AMERICAN/BANK use two tokens). `assign_folds()` puts
   each company wholly in train or test (stable md5 hash, 20% test, same fold for its LCA and postings
@@ -38,6 +40,32 @@ The app keeps running on the stub until Step 8.
 - `tests/test_evaluate.py`, `tests/test_split.py`, `tests/test_train.py`: hand-computed metrics; no company
   in both folds; shift never in train/test; QuantReg recovers known quantile lines on synthetic data;
   crossing fix; guard that no predict-time-unavailable column enters the features.
+
+## Step 4: QuantReg vs BLS baseline, held out (the result to quote)
+
+Same rows for both models. Δ = QuantReg minus baseline (negative = QuantReg better), 95% CI from a
+company-cluster bootstrap (2,000 resamples).
+
+| Group | n (companies) | MAE(log) base → QR | ΔMAE(log) [95% CI] | ΔPinball50 USD [95% CI] | Cov80 QR [CI] | Cov80 base |
+| --- | --- | --- | --- | --- | --- | --- |
+| LCA test | 29,972 (3,137) | 0.221 → **0.155** | −0.066 [−0.105, −0.030] | −4,222 [−6,588, −2,015] | 0.770 [0.744, 0.800] | 0.923 |
+| LCA shift, seen companies | 97,335 (7,177) | 0.195 → 0.142 | −0.053 [−0.083, −0.021] | −3,268 [−5,157, −1,285] | 0.815 | 0.975 |
+| LCA shift, unseen companies | 32,546 (6,802) | 0.194 → 0.159 | −0.035 [−0.070, +0.003] | −2,056 [−4,443, +688] | 0.780 | 0.969 |
+| Postings test ⚠ | 75 (49) | 0.266 → 0.249 | −0.017 [−0.069, +0.029] | −1,208 [−4,577, +1,719] | **0.533** [0.405, 0.662] | 0.787 |
+
+Quantile crossing before sorting: 0 rows in test, shift and shift_unseen.
+
+What we can claim:
+- **LCA, held-out companies: QuantReg beats the BLS median** (MAE 0.155 vs 0.221, ~30% lower; CI excludes 0),
+  and its interval is far closer to 80% (0.77 vs 0.92 inflated by the wage floor).
+- **Out of time (FY2026), unseen companies: improvement is smaller and the CI just touches 0.** Do not
+  claim it generalises to new companies in a new year; say "smaller, not significant at 95%".
+- **Postings: no detectable difference in accuracy, and the interval is worse** (53% coverage, 31% of
+  wages above P90). The model is an LCA model; its interval is too narrow and too low for postings.
+- CIs are wide despite 30k rows because a few companies dominate (Google ~13% of LCA test rows); the
+  effective sample size is the number of companies, not rows.
+- In FY2026 the model's P90 is too low (15-18% above P90): consistent with the wage-weighted H-1B
+  selection raising FY2026 wages.
 
 ## Step 3: QuantReg on the train fold (in-sample, not a result to claim)
 
@@ -92,7 +120,11 @@ The app keeps running on the stub until Step 8.
 
 ## Known issues / risks
 
-- **Only 75 postings rows in test.** Postings results will get bootstrap confidence intervals.
+- **The test fold has now been used once (QuantReg).** Step 5 tuning uses GroupKFold inside the train
+  fold only; XGBoost is scored on test once, when finished. Any interval recalibration for postings must
+  also be fitted inside the train fold.
+- **Only 75 postings rows in test (49 companies).** Postings CIs span roughly ±0.05 MAE, so no postings
+  accuracy claim is supportable either way.
 - **One company can move the test set:** Google (2.4% of rows) is entirely in test. Final results will
   include a check with a different hash seed.
 - **Train/serve SOC mismatch:** LCA `soc_code` is employer-filed, but `predict()` gets SOC from
