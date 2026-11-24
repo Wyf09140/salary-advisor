@@ -22,6 +22,13 @@ def test_parser():
     assert extract_years(t) == 3.0
 
 
+def test_extract_years_ignores_unrelated_numbers():
+    assert extract_years("Interned at a firm with 50 years of history") is None
+    assert extract_years("5+ yrs professional Python experience; 2 years of experience in SQL") == 5.0
+    assert extract_years("Built 3 dashboards") is None
+    assert extract_years("") is None
+
+
 def test_to_annual():
     out = to_annual(pd.Series([50, 100000]), pd.Series(["Hour", "Year"]))
     assert list(out) == [104000, 100000]

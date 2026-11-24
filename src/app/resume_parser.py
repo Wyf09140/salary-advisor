@@ -21,6 +21,16 @@ def extract_skills(text: str) -> list[str]:
             if any(re.search(rf"(?<![a-z]){re.escape(a)}(?![a-z])", t) for a in aliases)]
 
 
+_MAX_YEARS = 40  # anything larger is not a candidate's experience
+# "N years" counts only when "experience" follows within a few words,
+# e.g. "3 years of experience", "5+ yrs professional Python experience".
+_YEARS_EXP = re.compile(
+    r"(\d+(?:\.\d+)?)\+?\s*(?:years?|yrs?)(?:\s+of)?(?:\s+[a-z+#/.-]+){0,3}?\s+experience\b"
+)
+
+
 def extract_years(text: str) -> float | None:
-    m = re.findall(r"(\d+(?:\.\d+)?)\+?\s*years?", text.lower())
-    return max(map(float, m)) if m else None
+    """Largest stated years of experience, or None. Ignores unrelated numbers such as
+    "a company with 50 years of history"."""
+    vals = [float(v) for v in _YEARS_EXP.findall(text.lower()) if float(v) <= _MAX_YEARS]
+    return max(vals) if vals else None
