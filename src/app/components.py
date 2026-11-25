@@ -82,8 +82,11 @@ def range_band(r: dict, current: float | None) -> str:
 
 def skills_island(recs: list[tuple[str, float]], n_skills: int, years: float | None) -> str:
     """Ranked bars of predicted P50 uplift for skills missing from the profile."""
-    using = f"Based on {n_skills} skill{'s' if n_skills != 1 else ''}"
-    using += f" and {years:g} years of experience" if years else ""
+    if n_skills:
+        using = f"Based on {n_skills} skill{'s' if n_skills != 1 else ''}"
+        using += f" and {years:g} years of experience" if years else ""
+    else:
+        using = "No skills listed yet, so every skill counts as missing. Add yours for sharper advice"
     head = '<p class="sa-eyebrow">Next steps</p><p class="sa-h">Skills linked to higher pay</p>'
     if not recs:
         return head + '<p class="sa-note">Your profile already lists every skill we track.</p>'
@@ -101,13 +104,19 @@ def skills_island(recs: list[tuple[str, float]], n_skills: int, years: float | N
     )
 
 
+def empty_island(heading: str, body: str) -> str:
+    return (f'<div class="sa-empty"><p class="sa-h">{escape(heading)}</p><div class="sa-ghost"></div>'
+            f"<p>{body}</p></div>")
+
+
 def range_island(title: str, location: str, r: dict, current: float | None) -> str:
     where = escape(f"{title.strip()} · {location.strip()}")
     if current:
         head, detail = verdict(current, r)
         status = f'<div class="sa-verdict"><b>{head}</b><span class="sa-num">{detail}</span></div>'
     else:
-        status = '<div class="sa-verdict"><b>Add your salary</b><span>to see where you stand in this range</span></div>'
+        status = ('<div class="sa-verdict sa-verdict-hint"><b>Add your salary</b>'
+                  "<span>to see where you stand in this range</span></div>")
     return f"""
 <p class="sa-eyebrow">Market range</p>
 <div class="sa-hero">

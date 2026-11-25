@@ -87,6 +87,9 @@ html, body, .stApp, .stMarkdown, p, label, button, input, textarea, [data-basewe
 }
 .sa-verdict b { color: #D9472A; font-size: .92rem; }
 .sa-verdict span { color: var(--ink); font-size: .88rem; }
+.sa-verdict-hint { background: var(--accent-soft); }
+.sa-verdict-hint b { color: var(--accent); }
+.sa-warn { font-size: .85rem; color: #9A3412; background: #FFF4E5; border-radius: 12px; padding: .55rem .8rem; margin: 0; }
 
 .sa-band-wrap { margin-top: 3.4rem; }
 .sa-track { position: relative; height: 14px; border-radius: var(--radius-sm); background: var(--accent-soft); }
@@ -128,6 +131,7 @@ html, body, .stApp, .stMarkdown, p, label, button, input, textarea, [data-basewe
 .sa-empty .sa-ghost { height: 14px; border-radius: var(--radius-sm); margin: 1.6rem auto 1.4rem; max-width: 420px;
   background: linear-gradient(90deg, var(--accent-soft) 0 18%, #C9D9FF 18% 82%, var(--accent-soft) 82%); }
 .sa-empty p { color: var(--muted); margin: 0; }
+.sa-empty p.sa-h { color: var(--ink); margin-bottom: 0; }
 
 /* ---------- widgets ---------- */
 [data-testid="stWidgetLabel"] p { font-weight: 600; color: var(--ink); font-size: .9rem; }
@@ -142,8 +146,10 @@ html, body, .stApp, .stMarkdown, p, label, button, input, textarea, [data-basewe
 .stButton > button[data-testid="stBaseButton-primary"] p { font-weight: 700; font-size: 1rem; }
 .stButton > button[data-testid="stBaseButton-primary"]:hover { transform: translateY(-1px); box-shadow: 0 14px 26px -12px rgba(47, 107, 255, .9); }
 .stButton > button[data-testid="stBaseButton-primary"]:active { transform: translateY(1px); }
-[data-baseweb="tag"] { background: var(--accent-soft) !important; border-radius: var(--radius-sm) !important; }
-[data-baseweb="tag"] span, [data-baseweb="tag"] svg { color: var(--accent) !important; font-weight: 600; }
+[data-testid="stMultiSelectTagsContainer"] [data-tag] {
+  background: var(--accent-soft); color: var(--accent); border-radius: var(--radius-sm); font-weight: 600;
+}
+[data-testid="stMultiSelectTagsContainer"] [data-tag] * { color: var(--accent); }
 [data-testid="stFileUploaderDropzone"] { border-radius: 16px; background: var(--accent-soft); }
 """
 
