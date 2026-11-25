@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Salary Advisor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* Floating islands, seen from above: white islands hover over a sky and cast soft shadows below.
+   Colour roles: horizon blue = the model's range, coral = you, slate dashed = BLS baseline,
+   mint = skill advice. Every value below is a token; components only reference tokens. */
+:root {
+  --sky-1: #C9DFFF; --sky-2: #E4EFFF; --sky-3: #F6F9FF;
+  --ink: #10213A; --muted: #56677F; --faint: #8593A8; --line: #E1E8F3;
+  --island: #FFFFFF; --field: #F3F7FE;
+  --accent: #2F6BFF; --accent-2: #1F55E0; --accent-soft: #E3ECFF; --band-edge: #9BBBFF;
+  --you: #FF6B4A; --you-text: #C93D20; --you-soft: #FFEEE8;
+  --bls: #7C8AA0;
+  --mint: #14B8A6; --mint-text: #0B7C70; --mint-soft: #DDF6F2;
+  --error: #C8321F; --error-soft: #FFF0ED;
+  --r-xl: 30px; --r-md: 16px; --r-pill: 999px;
+  --font: 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --ease: cubic-bezier(.2, .8, .2, 1);
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; min-height: 100vh; font-family: var(--font); color: var(--ink);
+  background: linear-gradient(180deg, var(--sky-1) 0%, var(--sky-2) 38%, var(--sky-3) 80%);
+  background-attachment: fixed;
+  font-variant-numeric: tabular-nums;
+}
+button, input, select { font: inherit; color: inherit; }
+
+/* ---------- sky: drifting clouds far below the islands ---------- */
+.sky { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 0; }
+.cloud { position: absolute; border-radius: 50%; background: #fff; filter: blur(28px); opacity: .55; animation: drift 90s linear infinite; }
+.cloud.c1 { width: 520px; height: 140px; top: 12%; left: -10%; }
+.cloud.c2 { width: 380px; height: 110px; top: 58%; left: 55%; animation-duration: 120s; animation-delay: -40s; opacity: .45; }
+.cloud.c3 { width: 640px; height: 160px; top: 84%; left: 10%; animation-duration: 150s; animation-delay: -80s; opacity: .5; }
+@keyframes drift { from { transform: translateX(-15vw); } to { transform: translateX(25vw); } }
+
+/* ---------- page ---------- */
+.page { position: relative; z-index: 1; max-width: 1160px; margin: 0 auto; padding: 28px 24px 80px; }
+.bar { display: flex; align-items: center; gap: 12px; margin-bottom: 36px; }
+.logo { flex: none; width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; background: var(--ink); color: #fff; font-weight: 800; }
+.brand { font-weight: 800; font-size: 1.15rem; letter-spacing: -.01em; white-space: nowrap; }
+.scope { margin-left: auto; font-size: .82rem; color: var(--muted); background: rgba(255,255,255,.65); padding: 6px 12px; border-radius: var(--r-pill); white-space: nowrap; }
+
+.layout { display: grid; grid-template-columns: minmax(320px, 400px) 1fr; gap: 40px; align-items: start; }
+.stack { display: flex; flex-direction: column; gap: 52px; isolation: isolate; }
+
+/* ---------- islands ---------- */
+.island {
+  --alt: 26px;  /* how high the island floats: distance to its shadow */
+  position: relative; background: var(--island); border-radius: var(--r-xl);
+  padding: 28px 30px; box-shadow: 0 1px 2px rgba(31, 72, 150, .06), 0 10px 30px -18px rgba(31, 72, 150, .25);
+}
+.island::after {  /* the island's shadow on the sky below */
+  content: ""; position: absolute; left: 10%; right: 10%; bottom: calc(-1 * var(--alt) - 14px); height: 28px;
+  background: radial-gradient(closest-side, rgba(25, 62, 140, .22), transparent); filter: blur(4px); z-index: -1;
+  transition: transform .6s var(--ease), opacity .6s var(--ease);
+}
+.island.high { --alt: 40px; }
+.form-island { position: sticky; top: 24px; isolation: isolate; }
+.form-island::after { left: 14%; right: 14%; }
+
+.eyebrow { margin: 0 0 6px; font-size: .75rem; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+.h { margin: 0 0 22px; font-size: 1.3rem; font-weight: 800; letter-spacing: -.015em; }
+
+/* ---------- form ---------- */
+.field { margin-bottom: 18px; }
+.field > label, .field > .label { display: block; font-weight: 600; font-size: .9rem; margin-bottom: 7px; }
+.opt { font-weight: 500; color: var(--faint); }
+.input {
+  width: 100%; height: 48px; padding: 0 14px; border-radius: var(--r-md); border: 1.5px solid transparent;
+  background: var(--field); font-size: 16px; outline: none; transition: border-color .15s, background .15s, box-shadow .15s;
+}
+.input:hover { background: #EDF3FD; }
+.input:focus { border-color: var(--accent); background: #fff; box-shadow: 0 0 0 4px var(--accent-soft); }
+.money { position: relative; }
+.money .input { padding-left: 30px; }
+.money::before { content: "$"; position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--muted); font-weight: 600; }
+.field.invalid .input { border-color: var(--error); background: var(--error-soft); }
+.err { display: none; margin-top: 6px; font-size: .82rem; font-weight: 600; color: var(--error); }
+.field.invalid .err { display: block; }
+.row2 { display: grid; grid-template-columns: 1fr 120px; gap: 12px; }
+
+.drop {
+  display: flex; align-items: center; gap: 12px; width: 100%; padding: 14px; border-radius: var(--r-md);
+  border: 1.5px dashed #B9CCF2; background: var(--field); cursor: pointer; text-align: left; transition: border-color .15s, background .15s;
+}
+.drop:hover, .drop.over { border-color: var(--accent); background: #EDF3FD; }
+.drop:focus-visible { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+.drop-icon { flex: none; width: 38px; height: 38px; border-radius: 12px; background: #fff; display: grid; place-items: center; color: var(--accent); }
+.drop-text { display: flex; flex-direction: column; min-width: 0; }
+.drop-text b { font-size: .92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.drop-text span { font-size: .8rem; color: var(--muted); }
+.drop.has-file { border-style: solid; border-color: var(--line); background: #fff; }
+.parse-note { margin: 8px 0 0; font-size: .82rem; color: var(--muted); min-height: 1em; }
+.parse-note.warn { color: var(--you-text); }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 8px 0 12px; border-radius: var(--r-pill);
+  background: var(--accent-soft); color: var(--accent-2); font-weight: 600; font-size: .85rem; border: 0; cursor: pointer;
+}
+.chip:hover { background: #D5E2FF; }
+.chip svg { opacity: .7; }
+.add-skill {
+  height: 34px; padding: 0 30px 0 12px; border-radius: var(--r-pill); border: 1.5px dashed #B9CCF2; background: transparent;
+  color: var(--muted); font-weight: 600; font-size: .85rem; cursor: pointer; appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: calc(100% - 15px) 15px, calc(100% - 10px) 15px; background-size: 5px 5px; background-repeat: no-repeat;
+}
+.add-skill:focus-visible { outline: none; border-color: var(--accent); }
+
+.cta {
+  width: 100%; height: 54px; margin-top: 8px; border: 0; border-radius: var(--r-pill); background: var(--accent); color: #fff;
+  font-weight: 700; font-size: 1.02rem; cursor: pointer; box-shadow: 0 14px 26px -14px rgba(47, 107, 255, .9);
+  transition: transform .15s var(--ease), box-shadow .15s, background .15s;
+}
+.cta:hover { background: var(--accent-2); transform: translateY(-1px); }
+.cta:active { transform: translateY(1px) scale(.99); }
+.cta:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3px; }
+.cta[disabled] { opacity: .75; cursor: progress; }
+
+/* ---------- range island (hero) ---------- */
+.verdict { margin: 0; font-size: clamp(1.7rem, 3.2vw, 2.35rem); font-weight: 800; letter-spacing: -.025em; line-height: 1.12; }
+.verdict em { font-style: normal; color: var(--you-text); }
+.context { margin: 10px 0 0; color: var(--muted); font-size: .98rem; line-height: 1.5; }
+.context b { color: var(--ink); }
+.link-btn { border: 0; background: none; padding: 0; color: var(--accent-2); font-weight: 700; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+
+.chart { position: relative; margin: 64px 4px 0; }
+.track { position: relative; height: 26px; border-radius: var(--r-pill); background: var(--accent-soft); }
+.band { position: absolute; top: 0; bottom: 0; border-radius: var(--r-pill); background: linear-gradient(90deg, var(--band-edge), var(--accent) 45%, var(--accent) 55%, var(--band-edge)); }
+.mark-p50 { position: absolute; top: -6px; bottom: -6px; width: 4px; margin-left: -2px; border-radius: 2px; background: var(--ink); box-shadow: 0 0 0 2px #fff; }
+.mark-bls { position: absolute; top: -14px; bottom: -14px; width: 0; border-left: 2px dashed var(--bls); margin-left: -1px; }
+.you { position: absolute; bottom: 13px; width: 0; transition: left .8s var(--ease); }
+.you-pin { position: absolute; bottom: 0; left: 0; display: flex; flex-direction: column; align-items: center; transform: translateX(-50%); }
+.you-pin.edge-l { transform: translateX(-22px); align-items: flex-start; }
+.you-pin.edge-r { transform: translateX(calc(-100% + 22px)); align-items: flex-end; }
+.you-label { white-space: nowrap; background: var(--you); color: #fff; font-weight: 800; font-size: .9rem; padding: 6px 12px; border-radius: var(--r-pill); box-shadow: 0 10px 20px -10px rgba(255, 107, 74, .95); }
+.you-stem { width: 2px; height: 14px; background: var(--you); }
+.you-dot { width: 22px; height: 22px; border-radius: 50%; background: #fff; border: 6px solid var(--you); margin-bottom: -11px; box-shadow: 0 4px 10px -4px rgba(255,107,74,.8); }
+.edge-l .you-stem, .edge-l .you-dot { margin-left: 11px; } .edge-l .you-dot { margin-left: 1px; }
+.edge-r .you-stem, .edge-r .you-dot { margin-right: 11px; } .edge-r .you-dot { margin-right: 1px; }
+
+.ticks { position: relative; height: 46px; margin-top: 14px; }
+.tick { position: absolute; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; white-space: nowrap; }
+.tick.l { transform: none; align-items: flex-start; } .tick.r { transform: translateX(-100%); align-items: flex-end; }
+.tick b { font-size: 1rem; }
+.tick span { font-size: .78rem; color: var(--muted); font-weight: 600; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 14px; padding-top: 16px; border-top: 1px solid var(--line); font-size: .85rem; color: var(--muted); }
+.legend i { display: inline-block; vertical-align: middle; margin-right: 8px; }
+.lg-band { width: 22px; height: 10px; border-radius: 5px; background: var(--accent); }
+.lg-p50 { width: 4px; height: 14px; border-radius: 2px; background: var(--ink); }
+.lg-bls { width: 0; height: 14px; border-left: 2px dashed var(--bls); }
+.legend b { color: var(--ink); }
+
+/* ---------- skills island ---------- */
+.sub { margin: -14px 0 22px; color: var(--muted); font-size: .9rem; line-height: 1.5; }
+.recs { display: flex; flex-direction: column; gap: 14px; }
+.rec { display: grid; grid-template-columns: minmax(7.5rem, 12rem) 1fr auto; align-items: center; gap: 16px; }
+.rec-name { font-weight: 700; font-size: .95rem; }
+.rec-bar { height: 10px; border-radius: var(--r-pill); background: var(--mint-soft); overflow: hidden; }
+.rec-bar i { display: block; height: 100%; width: 0; border-radius: inherit; background: var(--mint); transition: width .7s var(--ease); }
+.rec-val { font-weight: 800; font-size: .95rem; color: var(--mint-text); text-align: right; min-width: 6.5rem; }
+.rec-val small { font-weight: 600; color: var(--muted); }
+.note { margin: 20px 0 0; font-size: .84rem; color: var(--muted); line-height: 1.5; }
+
+/* ---------- empty / error ---------- */
+.ghost .track { background: #EEF3FC; }
+.ghost .band { background: repeating-linear-gradient(90deg, #D6E3FB 0 14px, #E2EBFC 14px 28px); }
+.ghost .tick b { width: 52px; height: 12px; border-radius: 6px; background: #E6EDF8; margin-bottom: 6px; }
+.ghost-title { margin: 0; font-size: 1.55rem; font-weight: 800; letter-spacing: -.02em; }
+.state-msg { margin: 8px 0 0; color: var(--muted); }
+
+/* ---------- entrance + float ---------- */
+.rise { animation: rise .6s var(--ease) both; }
+.rise.d1 { animation-delay: .1s; }
+@keyframes rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+.hover-float { animation: rise .6s var(--ease) both, bob 7s ease-in-out .6s infinite; }
+.hover-float::after { animation: shadow 7s ease-in-out .6s infinite; }
+@keyframes bob { 50% { transform: translateY(-5px); } }
+@keyframes shadow { 50% { transform: scale(.92); opacity: .75; } }
+
+[hidden] { display: none !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* ---------- narrow screens ---------- */
+@media (max-width: 920px) {
+  .layout { grid-template-columns: 1fr; gap: 56px; }
+  .form-island { position: relative; top: 0; }
+}
+@media (max-width: 560px) {
+  .page { padding: 18px 16px 64px; }
+  .bar { margin-bottom: 24px; }
+  .scope { display: none; }
+  .island { padding: 22px 20px; border-radius: 26px; }
+  .chart { margin-top: 58px; }
+  .rec { grid-template-columns: 1fr auto; gap: 6px 12px; }
+  .rec-bar { grid-column: 1 / -1; grid-row: 2; }
+  .rec-val { min-width: 0; }
+}
+</style>
+</head>
+<body>
+<div class="sky" aria-hidden="true"><div class="cloud c1"></div><div class="cloud c2"></div><div class="cloud c3"></div></div>
+
+<div class="page">
+  <header class="bar">
+    <div class="logo" aria-hidden="true">$</div>
+    <div class="brand">Salary Advisor</div>
+    <div class="scope">Early-career software &amp; data roles</div>
+  </header>
+
+  <div class="layout">
+    <form class="island form-island" id="form" novalidate>
+      <p class="eyebrow">Your profile</p>
+      <h1 class="h">Is your pay on target?</h1>
+
+      <div class="field" data-field="title">
+        <label for="title">Job title</label>
+        <input class="input" id="title" name="title" value="Data Scientist" autocomplete="organization-title">
+        <div class="err" id="title-err">Enter a job title</div>
+      </div>
+
+      <div class="field" data-field="location">
+        <label for="location">Location</label>
+        <input class="input" id="location" name="location" value="San Jose, CA" placeholder="City, state">
+        <div class="err" id="location-err">Enter a city and state</div>
+      </div>
+
+      <div class="field" data-field="salary">
+        <label for="salary">Current or offered salary <span class="opt">· per year</span></label>
+        <div class="money"><input class="input" id="salary" name="salary" value="110,000" inputmode="numeric" placeholder="Optional"></div>
+      </div>
+
+      <div class="field">
+        <span class="label">Resume <span class="opt">· optional</span></span>
+        <button type="button" class="drop" id="drop">
+          <span class="drop-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M6 10l6-6 6 6M4 20h16"/></svg>
+          </span>
+          <span class="drop-text"><b id="drop-name">Upload PDF, DOCX or TXT</b><span id="drop-hint">We pull out your skills and experience</span></span>
+        </button>
+        <input type="file" id="file" accept=".pdf,.docx,.txt" hidden>
+        <p class="parse-note" id="parse-note" aria-live="polite"></p>
+      </div>
+
+      <div class="row2">
+        <div class="field">
+          <span class="label">Your skills</span>
+          <div class="chips" id="chips"></div>
+        </div>
+        <div class="field">
+          <label for="years">Experience</label>
+          <input class="input" id="years" name="years" inputmode="numeric" placeholder="Years">
+        </div>
+      </div>
+
+      <button class="cta" id="cta" type="submit">Estimate my range</button>
+    </form>
+
+    <main class="stack" id="results" aria-live="polite">
+      <section class="island high">
+        <p class="eyebrow">Where you stand</p>
+        <p class="ghost-title">Your market range appears here</p>
+        <p class="state-msg">Fill in your profile and select <b>Estimate my range</b>.</p>
+        <div class="chart ghost" aria-hidden="true">
+          <div class="track"><div class="band" style="left:18%;width:64%"></div></div>
+          <div class="ticks">
+            <div class="tick" style="left:18%"><b></b><span>Low · P10</span></div>
+            <div class="tick" style="left:50%"><b></b><span>Typical · P50</span></div>
+            <div class="tick" style="left:82%"><b></b><span>High · P90</span></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+</body>
+</html>
