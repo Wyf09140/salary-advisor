@@ -14,3 +14,7 @@ data/processed/*
 *.pkl
 *.mp4
 *.mov
+
+# desktop app build output (python -m src.desktop.build)
+/dist/
+/build/
