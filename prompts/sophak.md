@@ -172,3 +172,40 @@ https://oil-ui-gallery.vercel.app/works/fly-island/live/index.html
 I wanted to UI to be a notch instead so it's more easier to access
 ```
 Outcome: Claude rendered the reference page with Playwright: a dark notch docked to the top edge that expands from a 291×35 pill into a 510×308 tabbed panel (0.52 s spring curve). It rebuilt `web/index.html` around that pattern with the app's own content and colours. The collapsed pill shows the verdict and a mini range glyph; click, `/` or the hero button opens Profile / Range / Skills tabs; Esc or clicking outside collapses it. Claude fixed a CSS class clash that hid the status dot and removed a misplaced badge, then committed `baceb53`.
+
+### 2026-11-25 · Claude Code (Opus 5.5) · Purpose: explanation (git)
+Prompts:
+```
+how do I run it
+```
+```
+please give me the push command
+```
+Outcome: Claude gave the command to run the web notch (`python -m src.app.server`) and the push command (`git push`, or `git push -u origin app/frontend`).
+
+### 2026-11-25 · Claude Code (Opus 5.5) · Purpose: research / planning
+Prompt:
+```
+This is still base on web.
+
+I wanted to make it as a application where it runs on your desktop give me a plan how can you do that?
+```
+Outcome: Claude recommended wrapping the existing notch page in pywebview (Edge WebView2): a frameless, always-on-top window docked to the top of the screen with a Python bridge, a global hotkey, a tray icon, and PyInstaller packaging. It compared Electron, Tauri and PySide6, and flagged risks: bundle size once PyTorch/SBERT models land, Windows only, transparency.
+
+### 2026-11-25 · Claude Code (Opus 5.5) · Purpose: coding (desktop app)
+Prompts:
+```
+yes please
+```
+```
+again please commit every step
+```
+```
+there is a white box on my screen
+```
+Outcome: Claude worked on new branch `app/desktop` with defaults: Windows only, keep the web version, dev command plus `.exe`. The first transparent-window attempt left a white, then dark, box on screen, because WebView2 ignores WinForms transparency keys. Claude closed that test window and switched approach: the window itself is the island, resized, re-centred and clipped to rounded bottom corners whenever the page reports a size change. Commits:
+1. `0dcdd12`: desktop shell shaped like the island (`src/desktop/app.py`, desktop mode in `web/index.html`, `requirements-desktop.txt`).
+2. `5f289dc`: Python bridge through a shared `server.dispatch()`, so web and desktop give identical answers.
+3. `33efc61`: Ctrl+Alt+S global hotkey, tray icon (Open / Quit), no taskbar button, collapse when clicking into another app.
+4. `87bebab`: PyInstaller build (`python -m src.desktop.build` gives `dist/SalaryAdvisor/SalaryAdvisor.exe`, ~75 MB).
+5. README "Desktop app" section, `make desktop` / `make desktop-exe`, desktop tests (20 tests pass).
