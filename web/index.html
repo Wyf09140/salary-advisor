@@ -367,6 +367,22 @@ const digits = (s) => s.replace(/[^\d]/g, "");
 const X_ICON = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
 
 const island = $("#island"), pill = $("#pill"), panel = $("#panel");
+
+/* ================= API: Python bridge in the desktop app, HTTP in the browser ================= */
+const bridgeReady = new Promise((ok) => {
+  if (!document.documentElement.classList.contains("desktop")) return ok(false);
+  if (window.pywebview?.api?.call) return ok(true);
+  window.addEventListener("pywebviewready", () => ok(true), { once: true });
+});
+async function api(path, body) {
+  if (await bridgeReady) {
+    const out = await window.pywebview.api.call(path, body ?? null);
+    return { ok: out.status === 200, status: out.status, data: out.data };
+  }
+  const res = await fetch(path, body === undefined ? {} : {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  return { ok: res.ok, status: res.status, data: await res.json() };
+}
 const state = { all: [], labels: {}, skills: [], result: null, profile: null, tab: "profile" };
 
 /* ================= island: size, expand, collapse ================= */
@@ -477,8 +493,8 @@ async function handleFile(f) {
   $("#upload-name").textContent = f.name; $("#upload-hint").textContent = "Reading…"; upload.classList.add("has-file");
   try {
     const data = await new Promise((ok, bad) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1] || ""); r.onerror = bad; r.readAsDataURL(f); });
-    const res = await fetch("/api/parse-resume", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: f.name, data }) });
-    const out = await res.json();
+    const res = await api("/api/parse-resume", { name: f.name, data });
+    const out = res.data;
     if (!res.ok) throw new Error(out.error);
     state.skills = [...new Set([...state.skills, ...out.skills])]; renderChips();
     if (out.years != null) $("#years").value = Math.round(out.years);
@@ -597,8 +613,8 @@ $("#tp-profile").addEventListener("submit", async (e) => {
   const cta = $("#cta"); cta.disabled = true; cta.textContent = "Estimating…";
   setPill({ text: "Estimating…", dot: "busy" });
   try {
-    const res = await fetch("/api/estimate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(p) });
-    const out = await res.json();
+    const res = await api("/api/estimate", p);
+    const out = res.data;
     if (res.status === 422 && out.errors) { Object.entries(out.errors).forEach(([f, m]) => setInvalid(f, m)); setPill({ text: "Check your pay" }); return; }
     if (!res.ok) throw new Error(out.error);
     const r = out.range;
@@ -627,7 +643,7 @@ showEmptyResults();
 // Desktop app starts as a quiet pill at the top of the screen (class start-open is a test switch).
 if (DESKTOP && !document.documentElement.classList.contains("start-open")) collapse();
 fit();
-fetch("/api/skills").then((r) => r.json()).then((all) => {
+api("/api/skills").then(({ data: all }) => {
   state.all = all; all.forEach((s) => (state.labels[s.key] = s.label)); renderChips(); fit();
 }).catch(() => { $("#chips").innerHTML = '<p class="note warn">Can\'t reach the server. Is <code>python -m src.app.server</code> running?</p>'; fit(); });
 </script>

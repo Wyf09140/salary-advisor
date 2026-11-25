@@ -80,6 +80,29 @@ def parse_resume(body: dict) -> dict:
 ROUTES = {"/api/estimate": estimate, "/api/parse-resume": parse_resume}
 
 
+def skills() -> list[dict]:
+    return [{"key": s, "label": skill_label(s)} for s in SKILLS]
+
+
+def dispatch(path: str, body: dict | None = None) -> tuple[int, object]:
+    """One entry point for every API call -> (status, payload). Used by the HTTP server below and by
+    the desktop app's JS bridge (src/desktop/app.py), so both front ends get identical answers."""
+    if path == "/api/skills":
+        return 200, skills()
+    route = ROUTES.get(path)
+    if route is None:
+        return 404, {"error": "Not found"}
+    if not isinstance(body, dict):
+        return 400, {"error": "Expected a JSON object"}
+    try:
+        return 200, route(body)
+    except BadRequest as e:
+        return e.status, e.payload
+    except Exception as e:  # model or parser failure: keep running, tell the UI
+        print(f"[salary-advisor] {path} failed: {e!r}", file=sys.stderr)
+        return 500, {"error": "We couldn't estimate this role"}
+
+
 class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(WEB), **kwargs)
@@ -94,28 +117,18 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         if self.path == "/api/skills":
-            return self._send_json(200, [{"key": s, "label": skill_label(s)} for s in SKILLS])
+            return self._send_json(*dispatch(self.path))
         return super().do_GET()
 
     def do_POST(self):
-        route = ROUTES.get(self.path)
-        if route is None:
-            return self._send_json(404, {"error": "Not found"})
         length = int(self.headers.get("Content-Length") or 0)
         if length > MAX_BODY:
             return self._send_json(413, {"error": "File is too large (max 10 MB)"})
         try:
             body = json.loads(self.rfile.read(length) or b"{}")
-            if not isinstance(body, dict):
-                raise BadRequest(400, {"error": "Expected a JSON object"})
-            self._send_json(200, route(body))
         except json.JSONDecodeError:
-            self._send_json(400, {"error": "Invalid JSON"})
-        except BadRequest as e:
-            self._send_json(e.status, e.payload)
-        except Exception as e:  # model or parser failure: keep the server up, tell the UI
-            self.log_error("estimate failed: %r", e)
-            self._send_json(500, {"error": "We couldn't estimate this role"})
+            return self._send_json(400, {"error": "Invalid JSON"})
+        self._send_json(*dispatch(self.path, body))
 
     def log_message(self, fmt, *args):  # quieter console: only errors
         if args and str(args[1] if len(args) > 1 else "").startswith(("4", "5")):

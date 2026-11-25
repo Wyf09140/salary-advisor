@@ -2,7 +2,17 @@ import base64
 
 import pytest
 
-from src.app.server import BadRequest, estimate, parse_resume
+from src.app.server import BadRequest, dispatch, estimate, parse_resume
+
+
+def test_dispatch_routes_and_errors():
+    status, skills = dispatch("/api/skills")
+    assert status == 200 and {"key", "label"} <= set(skills[0])
+    assert dispatch("/api/estimate", {"title": "", "location": ""})[0] == 422
+    assert dispatch("/api/estimate", "not a dict")[0] == 400
+    assert dispatch("/api/nope", {})[0] == 404
+    status, out = dispatch("/api/estimate", {"title": "SWE", "location": "Boston, MA"})
+    assert status == 200 and "range" in out
 
 
 def test_estimate_contract():

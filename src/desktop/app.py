@@ -20,6 +20,7 @@ sys.path.append(str(Path(__file__).resolve().parents[2]))
 import webview
 
 from src.config import ROOT
+from src.app.server import dispatch
 
 PAGE = ROOT / "web" / "index.html"
 START_W, START_H = 560, 430  # expanded Profile panel; corrected by the page's first fit() call
@@ -80,6 +81,11 @@ class Api:
 
     def fit(self, width, height, radius, dpr):
         notch.fit(float(width), float(height), float(radius), float(dpr))
+
+    def call(self, path, body=None):
+        """Same API as the web server (/api/skills, /api/estimate, /api/parse-resume), minus HTTP."""
+        status, data = dispatch(str(path), body)
+        return {"status": status, "data": data}
 
 
 def main() -> None:
