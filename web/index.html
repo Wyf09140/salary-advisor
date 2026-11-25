@@ -17,7 +17,7 @@
   --ink: #10213A; --muted: #56677F; --faint: #8593A8; --line: #E1E8F3;
   --island: #FFFFFF; --field: #F3F7FE;
   --accent: #2F6BFF; --accent-2: #1F55E0; --accent-soft: #E3ECFF; --band-edge: #9BBBFF;
-  --you: #FF6B4A; --you-text: #C93D20; --you-soft: #FFEEE8;
+  --you: #E5532E; --you-text: #E5532E; --you-soft: #FFEEE8;  /* one coral for marker and words; 3.9:1 on white for large text */
   --bls: #7C8AA0;
   --mint: #14B8A6; --mint-text: #0B7C70; --mint-soft: #DDF6F2;
   --error: #C8321F; --error-soft: #FFF0ED;
@@ -35,10 +35,25 @@ button, input, select { font: inherit; color: inherit; }
 
 /* ---------- sky: drifting clouds far below the islands ---------- */
 .sky { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 0; }
-.cloud { position: absolute; border-radius: 50%; background: #fff; filter: blur(28px); opacity: .55; animation: drift 90s linear infinite; }
-.cloud.c1 { width: 520px; height: 140px; top: 12%; left: -10%; }
-.cloud.c2 { width: 380px; height: 110px; top: 58%; left: 55%; animation-duration: 120s; animation-delay: -40s; opacity: .45; }
-.cloud.c3 { width: 640px; height: 160px; top: 84%; left: 10%; animation-duration: 150s; animation-delay: -80s; opacity: .5; }
+/* Each cloud is a cluster of puffs on a flat base; nearer clouds are larger, sharper and brighter. */
+.cloud {
+  position: absolute; aspect-ratio: 3 / 1; animation: drift 110s linear infinite;
+  background:
+    radial-gradient(closest-side, #fff 96%, transparent) 8% 78% / 34% 62% no-repeat,
+    radial-gradient(closest-side, #fff 96%, transparent) 34% 30% / 38% 92% no-repeat,
+    radial-gradient(closest-side, #fff 96%, transparent) 62% 46% / 34% 78% no-repeat,
+    radial-gradient(closest-side, #fff 96%, transparent) 90% 76% / 28% 56% no-repeat,
+    radial-gradient(closest-side, #fff 96%, transparent) 50% 96% / 92% 44% no-repeat;
+  filter: drop-shadow(0 18px 18px rgba(64, 110, 190, .16));
+}
+.cloud.far { width: 260px; opacity: .55; filter: blur(3px); animation-duration: 170s; }
+.cloud.mid { width: 380px; opacity: .75; filter: blur(1.5px) drop-shadow(0 14px 14px rgba(64, 110, 190, .12)); animation-duration: 135s; }
+.cloud.near { width: 520px; opacity: .92; }
+.cloud.c1 { top: 6%; left: 58%; }
+.cloud.c2 { top: 30%; left: -6%; animation-delay: -50s; }
+.cloud.c3 { top: 64%; left: 44%; animation-delay: -90s; }
+.cloud.c4 { top: 82%; left: 4%; animation-delay: -30s; }
+.cloud.c5 { top: 48%; left: 78%; animation-delay: -120s; }
 @keyframes drift { from { transform: translateX(-15vw); } to { transform: translateX(25vw); } }
 
 /* ---------- page ---------- */
@@ -62,9 +77,14 @@ button, input, select { font: inherit; color: inherit; }
   background: radial-gradient(closest-side, rgba(25, 62, 140, .22), transparent); filter: blur(4px); z-index: -1;
   transition: transform .6s var(--ease), opacity .6s var(--ease);
 }
-.island.high { --alt: 40px; }
-.form-island { position: sticky; top: 24px; isolation: isolate; }
-.form-island::after { left: 14%; right: 14%; }
+/* Depth: the hero floats highest (lifted, larger, darker shadow far below); the form rests lowest. */
+.island.high {
+  --alt: 58px; margin-top: -14px;
+  box-shadow: 0 2px 4px rgba(31, 72, 150, .08), 0 34px 60px -28px rgba(25, 62, 140, .45);
+}
+.island.high::after { left: 6%; right: 6%; height: 36px; background: radial-gradient(closest-side, rgba(25, 62, 140, .3), transparent); filter: blur(6px); }
+.form-island { --alt: 14px; position: sticky; top: 24px; margin-top: 22px; isolation: isolate; background: rgba(255, 255, 255, .94); }
+.form-island::after { left: 16%; right: 16%; height: 20px; opacity: .7; }
 
 .eyebrow { margin: 0 0 6px; font-size: .75rem; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
 .h { margin: 0 0 22px; font-size: 1.3rem; font-weight: 800; letter-spacing: -.015em; }
@@ -101,7 +121,8 @@ button, input, select { font: inherit; color: inherit; }
 .drop-text b { font-size: .92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .drop-text span { font-size: .8rem; color: var(--muted); }
 .drop.has-file { border-style: solid; border-color: var(--line); background: #fff; }
-.parse-note { margin: 8px 0 0; font-size: .82rem; color: var(--muted); min-height: 1em; }
+.parse-note { margin: 8px 0 0; font-size: .82rem; color: var(--muted); }
+.parse-note:empty { display: none; }
 .parse-note.warn { color: var(--you-text); }
 
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -140,7 +161,8 @@ button, input, select { font: inherit; color: inherit; }
 .track { position: relative; height: 26px; border-radius: var(--r-pill); background: var(--accent-soft); }
 .band { position: absolute; top: 0; bottom: 0; border-radius: var(--r-pill); background: linear-gradient(90deg, var(--band-edge), var(--accent) 45%, var(--accent) 55%, var(--band-edge)); }
 .mark-p50 { position: absolute; top: -6px; bottom: -6px; width: 4px; margin-left: -2px; border-radius: 2px; background: var(--ink); box-shadow: 0 0 0 2px #fff; }
-.mark-bls { position: absolute; top: -14px; bottom: -14px; width: 0; border-left: 2px dashed var(--bls); margin-left: -1px; }
+.mark-bls { position: absolute; top: -18px; bottom: -18px; width: 0; border-left: 2px dashed var(--bls); margin-left: -1px; }
+.bls-tag { position: absolute; top: 100%; margin-top: 2px; transform: translateX(-50%); font-size: .72rem; font-weight: 700; color: var(--bls); white-space: nowrap; }
 .you { position: absolute; bottom: 13px; width: 0; transition: left .8s var(--ease); }
 .you-pin { position: absolute; bottom: 0; left: 0; display: flex; flex-direction: column; align-items: center; transform: translateX(-50%); }
 .you-pin.edge-l { transform: translateX(-22px); align-items: flex-start; }
@@ -151,22 +173,19 @@ button, input, select { font: inherit; color: inherit; }
 .edge-l .you-stem, .edge-l .you-dot { margin-left: 11px; } .edge-l .you-dot { margin-left: 1px; }
 .edge-r .you-stem, .edge-r .you-dot { margin-right: 11px; } .edge-r .you-dot { margin-right: 1px; }
 
-.ticks { position: relative; height: 46px; margin-top: 14px; }
+.ticks { position: relative; height: 46px; margin-top: 22px; }
+.tick .bls-note { font-size: .74rem; color: var(--bls); font-weight: 700; }
 .tick { position: absolute; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; white-space: nowrap; }
 .tick.l { transform: none; align-items: flex-start; } .tick.r { transform: translateX(-100%); align-items: flex-end; }
 .tick b { font-size: 1rem; }
 .tick span { font-size: .78rem; color: var(--muted); font-weight: 600; }
-.legend { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 14px; padding-top: 16px; border-top: 1px solid var(--line); font-size: .85rem; color: var(--muted); }
-.legend i { display: inline-block; vertical-align: middle; margin-right: 8px; }
-.lg-band { width: 22px; height: 10px; border-radius: 5px; background: var(--accent); }
-.lg-p50 { width: 4px; height: 14px; border-radius: 2px; background: var(--ink); }
-.lg-bls { width: 0; height: 14px; border-left: 2px dashed var(--bls); }
-.legend b { color: var(--ink); }
+.legend { margin: 22px 0 0; font-size: .85rem; color: var(--muted); }
+.legend i { display: inline-block; vertical-align: middle; margin-right: 8px; width: 22px; height: 10px; border-radius: 5px; background: var(--accent); }
 
 /* ---------- skills island ---------- */
 .sub { margin: -14px 0 22px; color: var(--muted); font-size: .9rem; line-height: 1.5; }
-.recs { display: flex; flex-direction: column; gap: 14px; }
-.rec { display: grid; grid-template-columns: minmax(7.5rem, 12rem) 1fr auto; align-items: center; gap: 16px; }
+.recs { display: grid; grid-template-columns: max-content 1fr auto; align-items: center; gap: 14px 18px; }
+.rec { display: contents; }
 .rec-name { font-weight: 700; font-size: .95rem; }
 .rec-bar { height: 10px; border-radius: var(--r-pill); background: var(--mint-soft); overflow: hidden; }
 .rec-bar i { display: block; height: 100%; width: 0; border-radius: inherit; background: var(--mint); transition: width .7s var(--ease); }
@@ -176,8 +195,11 @@ button, input, select { font: inherit; color: inherit; }
 
 /* ---------- empty / error ---------- */
 .ghost .track { background: #EEF3FC; }
-.ghost .band { background: repeating-linear-gradient(90deg, #D6E3FB 0 14px, #E2EBFC 14px 28px); }
-.ghost .tick b { width: 52px; height: 12px; border-radius: 6px; background: #E6EDF8; margin-bottom: 6px; }
+.ghost .band { background: transparent; border: 2px dashed #A9C2F5; }
+.ghost .tick b { color: #B4C2D8; }
+.ghost .you-label { background: #fff; color: var(--you); border: 2px dashed var(--you); box-shadow: none; }
+.ghost .you-dot { border-width: 3px; box-shadow: none; }
+.ghost .you-stem { background: repeating-linear-gradient(var(--you) 0 3px, transparent 3px 6px); }
 .ghost-title { margin: 0; font-size: 1.55rem; font-weight: 800; letter-spacing: -.02em; }
 .state-msg { margin: 8px 0 0; color: var(--muted); }
 
@@ -199,7 +221,9 @@ button, input, select { font: inherit; color: inherit; }
 /* ---------- narrow screens ---------- */
 @media (max-width: 920px) {
   .layout { grid-template-columns: 1fr; gap: 56px; }
-  .form-island { position: relative; top: 0; }
+  .form-island { position: relative; top: 0; margin-top: 0; }
+  .island.high { margin-top: 0; }
+  #results { scroll-margin-top: 16px; }
 }
 @media (max-width: 560px) {
   .page { padding: 18px 16px 64px; }
@@ -207,14 +231,19 @@ button, input, select { font: inherit; color: inherit; }
   .scope { display: none; }
   .island { padding: 22px 20px; border-radius: 26px; }
   .chart { margin-top: 58px; }
-  .rec { grid-template-columns: 1fr auto; gap: 6px 12px; }
+  .recs { grid-template-columns: 1fr; gap: 16px; }
+  .rec { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; align-items: center; }
   .rec-bar { grid-column: 1 / -1; grid-row: 2; }
   .rec-val { min-width: 0; }
 }
 </style>
 </head>
 <body>
-<div class="sky" aria-hidden="true"><div class="cloud c1"></div><div class="cloud c2"></div><div class="cloud c3"></div></div>
+<div class="sky" aria-hidden="true">
+  <div class="cloud far c1"></div><div class="cloud far c5"></div>
+  <div class="cloud mid c2"></div><div class="cloud mid c3"></div>
+  <div class="cloud near c4"></div>
+</div>
 
 <div class="page">
   <header class="bar">
@@ -247,7 +276,7 @@ button, input, select { font: inherit; color: inherit; }
         </div>
         <div class="field" data-field="years">
           <label for="years">Experience</label>
-          <div class="unit" data-unit="yrs"><input class="input" id="years" name="years" inputmode="numeric" placeholder="0"></div>
+          <div class="unit" data-unit="yrs"><input class="input" id="years" name="years" inputmode="numeric" placeholder="e.g. 2"></div>
         </div>
       </div>
 
@@ -272,19 +301,6 @@ button, input, select { font: inherit; color: inherit; }
     </form>
 
     <main class="stack" id="results" aria-live="polite">
-      <section class="island high">
-        <p class="eyebrow">Where you stand</p>
-        <p class="ghost-title">Your market range appears here</p>
-        <p class="state-msg">Fill in your profile and select <b>Estimate my range</b>.</p>
-        <div class="chart ghost" aria-hidden="true">
-          <div class="track"><div class="band" style="left:18%;width:64%"></div></div>
-          <div class="ticks">
-            <div class="tick" style="left:18%"><b></b><span>Low · P10</span></div>
-            <div class="tick" style="left:50%"><b></b><span>Typical · P50</span></div>
-            <div class="tick" style="left:82%"><b></b><span>High · P90</span></div>
-          </div>
-        </div>
-      </section>
     </main>
   </div>
 </div>
@@ -396,7 +412,7 @@ function rangeIsland(p, r) {
 
   const head = cur
     ? `<h2 class="verdict">${verdictText(cur, r)}</h2>
-       <p class="context">Typical pay for ${where} is <b>${money(r.p50)}</b> a year. You entered ${money(cur)}.</p>`
+       <p class="context">Typical pay for ${where}: <b>${money(r.p50)}</b> a year.</p>`
     : `<h2 class="verdict">Typical pay is ${money(r.p50)}</h2>
        <p class="context">For ${where}. <button type="button" class="link-btn" id="add-salary">Add your salary</button> to see where you stand.</p>`;
 
@@ -407,10 +423,10 @@ function rangeIsland(p, r) {
     you = `<div class="you" data-x="${xy.toFixed(2)}" style="left:${x.p10.toFixed(2)}%">
              <div class="you-pin${edge}"><span class="you-label">You · ${short(cur)}</span><span class="you-stem"></span><span class="you-dot"></span></div></div>`;
   }
-  const bls = same ? "" : `<div class="mark-bls" style="left:${x.bls.toFixed(2)}%"></div>`;
-  const blsText = same
-    ? `<span><i class="lg-bls"></i>BLS median <b>${money(r.bls_median)}</b> matches the typical pay</span>`
-    : `<span><i class="lg-bls"></i>BLS median <b>${money(r.bls_median)}</b></span>`;
+  // BLS baseline is always drawn on the bar; when it equals P50 the P50 label says so.
+  const bls = `<div class="mark-bls" style="left:${x.bls.toFixed(2)}%">${
+    same ? "" : `<span class="bls-tag">BLS ${short(r.bls_median)}</span>`}</div>`;
+  const p50Note = same ? `<span class="bls-note">= BLS median</span>` : "";
 
   return `<section class="island high hover-float">
     <p class="eyebrow">Where you stand</p>
@@ -424,14 +440,10 @@ function rangeIsland(p, r) {
       </div>
       <div class="ticks">
         <div class="tick${x.p10 < 8 ? " l" : ""}" style="left:${x.p10.toFixed(2)}%"><b>${short(r.p10)}</b><span>Low · P10</span></div>
-        <div class="tick" style="left:${x.p50.toFixed(2)}%"><b>${short(r.p50)}</b><span>Typical · P50</span></div>
+        <div class="tick" style="left:${x.p50.toFixed(2)}%"><b>${short(r.p50)}</b><span>Typical · P50</span>${p50Note}</div>
         <div class="tick${x.p90 > 92 ? " r" : ""}" style="left:${x.p90.toFixed(2)}%"><b>${short(r.p90)}</b><span>High · P90</span></div>
       </div>
-      <div class="legend">
-        <span><i class="lg-band"></i>Middle 80% of pay for similar roles</span>
-        <span><i class="lg-p50"></i>Typical (median)</span>
-        ${blsText}
-      </div>
+      <p class="legend"><i></i>Blue bar: the middle 80% of pay for similar roles. Dashed line: BLS median wage for this occupation and area.</p>
     </div>
   </section>`;
 }
@@ -454,6 +466,31 @@ function skillsIsland(p, recs) {
     <p class="note">${basis}</p>
   </section>`;
 }
+
+/* First visit: the hero at full size, with a dashed ghost range and a ghost You pin at the typed salary. */
+function previewIsland() {
+  const cur = Number(digits($("#salary").value)) || null;
+  const pin = cur
+    ? `<div class="you" style="left:40%"><div class="you-pin"><span class="you-label">You · ${short(cur)}</span><span class="you-stem"></span><span class="you-dot"></span></div></div>`
+    : "";
+  return `<section class="island high" id="preview">
+    <p class="eyebrow">Where you stand</p>
+    <h2 class="verdict">${cur ? `See where <em>${money(cur)}</em> lands` : "See where your pay lands"}</h2>
+    <p class="context">Fill in your profile, then select <b>Estimate my range</b>. Your pay is placed on the market range for the role and city.</p>
+    <div class="chart ghost" aria-hidden="true">
+      <div class="track"><div class="band" style="left:18%;width:64%"></div>${pin}</div>
+      <div class="ticks">
+        <div class="tick" style="left:18%"><b>$—</b><span>Low · P10</span></div>
+        <div class="tick" style="left:50%"><b>$—</b><span>Typical · P50</span></div>
+        <div class="tick" style="left:82%"><b>$—</b><span>High · P90</span></div>
+      </div>
+    </div>
+  </section>`;
+}
+let estimated = false;
+const showPreview = () => { if (!estimated) $("#results").innerHTML = previewIsland(); };
+$("#salary").addEventListener("input", showPreview);
+showPreview();
 
 function messageIsland(title, body) {
   return `<section class="island high rise"><p class="eyebrow">Where you stand</p>
@@ -493,6 +530,7 @@ $("#form").addEventListener("submit", async (e) => {
       return;
     }
     if (!res.ok) throw new Error(out.error);
+    estimated = true;
     results.innerHTML = rangeIsland(p, out.range) + skillsIsland(p, out.recommendations);
     animateIn(results);
     $("#add-salary")?.addEventListener("click", () => $("#salary").focus());
