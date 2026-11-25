@@ -145,3 +145,30 @@ Outcome: Claude kept the Streamlit app unchanged and built a dedicated web front
 4. `make web` in the Makefile and README.
 5. An independent design review (7/10), then fixes: the hero floats highest, layered clouds, coral verdict matching the You pin, BLS line drawn on the bar, hero-sized empty preview, phone scrolls to the verdict.
 Claude opened the page in the browser at http://localhost:8600. 17 tests pass.
+
+### 2026-11-24 · Claude Code (Opus 5.5) · Purpose: explanation
+Prompts:
+```
+how do I run the project
+```
+```
+how do I run the front end
+```
+```
+Answer my question is the LLM and everything else has been implemented by my teammate?
+```
+```
+Answer only:
+
+So where does the project answer came from?
+```
+Outcome: Claude gave run commands for both front ends, the tests and the pipeline. It checked GitHub: there is no LLM in the design; Yifan's data pipeline is merged; Pubudu's `model/eval-harness` branch has finished 4 of 9 steps (QuantReg beats the BLS baseline on held-out LCA companies) but is not merged, and `predict()` is still a stub. Current answers therefore come from the fixed stub numbers in `src/models/predict.py`.
+
+### 2026-11-24 · Claude Code (Opus 5.5) · Purpose: coding (frontend)
+Prompt:
+```
+https://oil-ui-gallery.vercel.app/works/fly-island/live/index.html
+
+I wanted to UI to be a notch instead so it's more easier to access
+```
+Outcome: Claude rendered the reference page with Playwright: a dark notch docked to the top edge that expands from a 291×35 pill into a 510×308 tabbed panel (0.52 s spring curve). It rebuilt `web/index.html` around that pattern with the app's own content and colours. The collapsed pill shows the verdict and a mini range glyph; click, `/` or the hero button opens Profile / Range / Skills tabs; Esc or clicking outside collapses it. Claude fixed a CSS class clash that hid the status dot and removed a misplaced badge, then committed `baceb53`.
