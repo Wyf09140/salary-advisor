@@ -6,24 +6,23 @@
 <title>Salary Advisor</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%2314151A'/%3E%3Ctext x='16' y='22' font-family='Arial' font-weight='700' font-size='18' fill='white' text-anchor='middle'%3E$%3C/text%3E%3C/svg%3E">
 <style>
-/* Notch UI: the whole advisor lives in a dark island docked to the top edge of the page.
-   Collapsed it is a one-line status pill; expanded it is a tabbed panel (Profile, Range, Skills).
-   Colour roles on dark: blue = the model's range, coral = you, slate dashed = BLS baseline, mint = skill advice. */
+/* Notch dashboard: the advisor lives in a dark island docked to the top edge.
+   Collapsed: a one-line status pill. Expanded: one wide bar of live widgets
+   (pay card, profile, your skills, skills to add, number cycler, resume).
+   Colour roles: blue = model range, coral = you, slate dashed = BLS baseline, mint = skill advice. */
 :root {
-  /* page */
   --sky-1: #C9DFFF; --sky-2: #E4EFFF; --sky-3: #F6F9FF; --ink: #10213A; --ink-muted: #4F6079;
-  /* island (dark glass) */
-  --isl-bg: rgba(18, 19, 24, .93); --isl-text: #F5F4F0; --isl-muted: rgba(245, 244, 240, .62);
-  --isl-faint: rgba(245, 244, 240, .42); --isl-line: rgba(255, 255, 255, .08); --isl-field: rgba(255, 255, 255, .07);
-  --isl-field-hover: rgba(255, 255, 255, .1);
+  --isl-bg: linear-gradient(180deg, rgba(30, 30, 34, .96), rgba(16, 16, 19, .97));
+  --isl-solid: #141417;
+  --text: #F5F4F0; --muted: rgba(245, 244, 240, .62); --faint: rgba(245, 244, 240, .4);
+  --line: rgba(255, 255, 255, .08); --hover: rgba(255, 255, 255, .05); --field: rgba(255, 255, 255, .07);
   --blue: #5B8CFF; --blue-deep: #3A63D8; --blue-soft: rgba(91, 140, 255, .18);
-  --coral: #FF7A59; --mint: #2DD4BF; --mint-soft: rgba(45, 212, 191, .16); --bls: #9AA6B8;
-  --error: #FF8F7D;
-  /* shape + motion */
-  --r-pill-bottom: 0 0 22px 22px; --r-panel-bottom: 0 0 30px 30px; --r-field: 12px; --r-pill: 999px;
+  --coral: #FF7A59; --coral-soft: rgba(255, 122, 89, .18); --mint: #2DD4BF; --mint-soft: rgba(45, 212, 191, .16);
+  --bls: #9AA6B8; --error: #FF8F7D;
   --spring: cubic-bezier(.16, 1, .3, 1);
   --font: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", sans-serif;
   --font-display: "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --panel-w: 1200px;
 }
 * { box-sizing: border-box; }
 html {
@@ -32,9 +31,10 @@ html {
 }
 body { margin: 0; min-height: 100vh; font-family: var(--font); color: var(--ink); font-variant-numeric: tabular-nums; }
 button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
 [hidden] { display: none !important; }
 
-/* ---------- sky ---------- */
+/* ---------- page behind the island (web only) ---------- */
 .sky { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 0; }
 .cloud {
   position: absolute; aspect-ratio: 3 / 1; animation: drift 120s linear infinite;
@@ -49,226 +49,209 @@ button, input, select { font: inherit; color: inherit; }
 .cloud.far { width: 260px; opacity: .55; filter: blur(3px); animation-duration: 170s; }
 .cloud.mid { width: 380px; opacity: .75; animation-duration: 140s; }
 .cloud.near { width: 520px; opacity: .92; }
-.c1 { top: 10%; left: 70%; } .c2 { top: 34%; left: -6%; animation-delay: -50s; }
+.c1 { top: 10%; left: 70%; } .c2 { top: 40%; left: -6%; animation-delay: -50s; }
 .c3 { top: 66%; left: 46%; animation-delay: -90s; } .c4 { top: 82%; left: 2%; animation-delay: -30s; }
-.c5 { top: 50%; left: 80%; animation-delay: -120s; }
+.c5 { top: 52%; left: 80%; animation-delay: -120s; }
 @keyframes drift { from { transform: translateX(-15vw); } to { transform: translateX(25vw); } }
-
-/* ---------- page behind the island ---------- */
-.brand { position: fixed; top: 18px; left: 22px; z-index: 1; display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.02rem; }
-.logo { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; background: #14151A; color: #fff; font-weight: 800; font-size: 14px; }
 .hero {
   position: relative; z-index: 1; min-height: 100vh; display: flex; flex-direction: column; align-items: center;
-  justify-content: flex-end; text-align: center; padding: 0 20px 16vh; transition: opacity .4s var(--spring);
+  justify-content: flex-end; text-align: center; padding: 0 20px 14vh; transition: opacity .4s var(--spring);
 }
 body.open .hero { opacity: .35; }
 .hero h1 { margin: 0; font-family: var(--font-display); font-size: clamp(2.2rem, 5.4vw, 4rem); font-weight: 700; letter-spacing: -.03em; line-height: 1.04; }
 .hero p { margin: 18px auto 0; max-width: 34rem; font-size: 1.05rem; line-height: 1.55; color: var(--ink-muted); }
 .hero-cta {
-  margin-top: 30px; height: 50px; padding: 0 26px; border: 0; border-radius: var(--r-pill); background: #14151A; color: #fff;
-  font-weight: 600; font-size: 1rem; cursor: pointer; display: inline-flex; align-items: center; gap: 10px;
+  margin-top: 30px; height: 50px; padding: 0 26px; border: 0; border-radius: 999px; background: #141417; color: #fff;
+  font-weight: 600; font-size: 1rem; display: inline-flex; align-items: center; gap: 10px;
   box-shadow: 0 14px 28px -16px rgba(20, 21, 26, .8); transition: transform .2s var(--spring);
 }
 .hero-cta:hover { transform: translateY(-2px); }
 .hero-cta:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
-kbd { font-family: inherit; font-size: .78rem; padding: 2px 7px; border-radius: 6px; background: rgba(255,255,255,.16); }
+kbd { font-family: inherit; font-size: .78rem; padding: 2px 7px; border-radius: 6px; background: rgba(255, 255, 255, .16); }
 
-/* ---------- the island ---------- */
+/* ---------- island ---------- */
 .island {
   position: fixed; top: 0; left: 50%; z-index: 10; transform: translateX(-50%);
-  width: 300px; height: 38px; overflow: hidden; color: var(--isl-text);
-  background: var(--isl-bg); border-radius: var(--r-pill-bottom);
-  -webkit-backdrop-filter: blur(20px) saturate(1.4); backdrop-filter: blur(20px) saturate(1.4);
-  box-shadow: 0 18px 46px rgba(0, 0, 0, .22), inset 0 -1px 0 rgba(255, 255, 255, .06);
-  transition: width .52s var(--spring), height .52s var(--spring), border-radius .52s var(--spring), box-shadow .22s;
+  width: 300px; height: 38px; overflow: hidden; color: var(--text);
+  background: var(--isl-bg); border-radius: 0 0 22px 22px;
+  -webkit-backdrop-filter: blur(24px) saturate(1.4); backdrop-filter: blur(24px) saturate(1.4);
+  box-shadow: 0 18px 46px rgba(0, 0, 0, .25), inset 0 -1px 0 rgba(255, 255, 255, .06);
+  transition: width .55s var(--spring), height .55s var(--spring), border-radius .55s var(--spring);
 }
-.island.expanded { border-radius: var(--r-panel-bottom); box-shadow: 0 28px 70px rgba(0, 0, 0, .32), inset 0 -1px 0 rgba(255, 255, 255, .06); }
-.island > .face { position: absolute; top: 0; left: 50%; transform: translateX(-50%); transition: opacity .22s ease; }
+.island.expanded { border-radius: 0 0 32px 32px; box-shadow: 0 30px 80px rgba(0, 0, 0, .35), inset 0 -1px 0 rgba(255, 255, 255, .06); }
+.island > .face { position: absolute; top: 0; left: 50%; transform: translateX(-50%); transition: opacity .2s ease; }
 .island:not(.expanded) > .panel, .island.expanded > .pill { opacity: 0; pointer-events: none; }
 
-/* collapsed: status pill */
-.pill {
-  display: inline-flex; align-items: center; gap: 10px; height: 38px; padding: 0 16px 0 14px; white-space: nowrap;
-  border: 0; background: none; cursor: pointer; font-size: .9rem; font-weight: 600;
-}
+.pill { display: inline-flex; align-items: center; gap: 10px; height: 38px; padding: 0 16px 0 14px; white-space: nowrap; border: 0; background: none; font-size: .9rem; font-weight: 600; }
 .pill:focus-visible { outline: none; }
 .island:has(.pill:focus-visible) { box-shadow: 0 0 0 3px var(--blue), 0 18px 46px rgba(0, 0, 0, .22); }
 .pill-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--blue); box-shadow: 0 0 0 3px var(--blue-soft); flex: none; }
-.pill-dot.is-you { background: var(--coral); box-shadow: 0 0 0 3px rgba(255, 122, 89, .2); }
-.pill-dot.busy { animation: pulse 1s ease-in-out infinite; }
-@keyframes pulse { 50% { transform: scale(.6); opacity: .6; } }
-.pill-sub { color: var(--isl-muted); font-weight: 500; }
+.pill-dot.is-you { background: var(--coral); box-shadow: 0 0 0 3px var(--coral-soft); }
+.pill-sub { color: var(--muted); font-weight: 500; }
 .glyph { position: relative; width: 46px; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, .12); flex: none; margin-left: 4px; }
 .glyph i { position: absolute; top: 0; bottom: 0; left: 18%; width: 64%; border-radius: 3px; background: var(--blue); }
-.glyph b { position: absolute; top: 50%; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-radius: 50%; background: var(--coral); border: 2px solid #15161B; left: 40%; transition: left .6s var(--spring); }
-.glyph.idle b { display: none; }
+.glyph b { position: absolute; top: 50%; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-radius: 50%; background: var(--coral); border: 2px solid var(--isl-solid); left: 40%; transition: left .6s var(--spring); }
 
-/* expanded: panel */
-.panel { width: min(560px, calc(100vw - 16px)); padding: 14px 20px 20px; }
-.panel-top { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
-.tabs { display: flex; gap: 4px; padding: 3px; border-radius: var(--r-pill); background: rgba(255, 255, 255, .06); }
-.tab {
-  height: 32px; padding: 0 14px; border: 0; border-radius: var(--r-pill); background: none; cursor: pointer;
-  font-size: .86rem; font-weight: 600; color: var(--isl-muted); display: inline-flex; align-items: center; gap: 6px;
-  transition: background .2s, color .2s;
+/* ---------- expanded dashboard ---------- */
+.panel { width: min(var(--panel-w), calc(100vw - 16px)); padding: 10px 16px 18px; }
+.topbar { display: flex; align-items: center; gap: 10px; height: 34px; margin-bottom: 8px; }
+.mark { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; background: rgba(255, 255, 255, .1); font-weight: 800; font-size: 13px; }
+.top-title { font-weight: 600; font-size: .9rem; }
+.status { display: inline-flex; align-items: center; gap: 7px; margin-left: 6px; font-size: .78rem; color: var(--muted); }
+.status i { width: 7px; height: 7px; border-radius: 50%; background: var(--mint); }
+.status.busy i { background: var(--blue); }
+.status.warn { color: var(--coral); } .status.warn i { background: var(--coral); }
+.top-actions { margin-left: auto; display: flex; gap: 8px; }
+.icon-btn { width: 30px; height: 30px; border-radius: 50%; border: 0; background: rgba(255, 255, 255, .1); display: grid; place-items: center; transition: background .2s, transform .2s var(--spring); }
+.icon-btn:hover { background: rgba(255, 255, 255, .18); transform: scale(1.06); }
+.icon-btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+.widgets { display: flex; align-items: stretch; gap: 0; }
+.w { position: relative; padding: 10px 12px; border-radius: 18px; transition: background .25s; min-width: 0; flex-shrink: 0; }
+.w:hover { background: var(--hover); }
+.sep { width: 1px; margin: 8px 4px; background: var(--line); flex: none; }
+.w-label { margin: 0 0 8px; font-size: .78rem; font-weight: 600; color: var(--muted); display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+
+/* A. pay card */
+.w-hero { display: flex; gap: 14px; flex: 0 0 344px; }
+.art {
+  position: relative; flex: none; width: 128px; height: 128px; border-radius: 18px; overflow: hidden; display: flex; flex-direction: column;
+  justify-content: flex-end; padding: 12px; background: linear-gradient(140deg, #FF9A6B, #FF5F7E 45%, #7B5CFF);
+  box-shadow: 0 12px 28px -12px rgba(0, 0, 0, .6);
 }
-.tab:hover { color: var(--isl-text); }
-.tab[aria-selected="true"] { background: rgba(255, 255, 255, .12); color: var(--isl-text); }
-.tab:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
-.badge { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; font-size: .7rem; display: inline-grid; place-items: center; background: var(--mint-soft); color: var(--mint); }
-.top-actions { margin-left: auto; display: flex; gap: 6px; }
-.icon-btn {
-  width: 32px; height: 32px; border-radius: 50%; border: 0; background: rgba(255, 255, 255, .08); color: var(--isl-text);
-  display: grid; place-items: center; cursor: pointer; transition: background .2s;
+.art[data-mood="above"] { background: linear-gradient(140deg, #5EEAD4, #14B8A6 45%, #3A63D8); }
+.art[data-mood="typical"] { background: linear-gradient(140deg, #8FB2FF, #5B8CFF 45%, #7B5CFF); }
+.art[data-mood="none"] { background: linear-gradient(140deg, #3A3A44, #26262E); }
+.art::before { content: ""; position: absolute; inset: -40% -20% auto auto; width: 120px; height: 120px; border-radius: 50%; background: rgba(255, 255, 255, .18); }
+.art-label { position: relative; font-size: .7rem; font-weight: 800; letter-spacing: .12em; opacity: .85; }
+.art b { position: relative; font-family: var(--font-display); font-size: 1.8rem; font-weight: 800; letter-spacing: -.03em; line-height: 1; }
+.art-badge { position: absolute; right: 8px; bottom: 8px; width: 24px; height: 24px; border-radius: 50%; background: var(--isl-solid); display: grid; place-items: center; font-size: .8rem; font-weight: 800; }
+.hero-info { flex: 1; min-width: 0; display: flex; flex-direction: column; padding-top: 2px; }
+.hero-title { font-weight: 700; font-size: 1.02rem; line-height: 1.25; }
+.hero-title em { font-style: normal; color: var(--coral); }
+.hero-sub { margin-top: 3px; color: var(--muted); font-size: .85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.scrub { margin-top: auto; }
+.scrub-track { position: relative; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, .12); }
+.scrub-band { position: absolute; top: 0; bottom: 0; border-radius: 3px; background: linear-gradient(90deg, var(--blue-deep), var(--blue)); }
+.scrub-p50 { position: absolute; top: -4px; bottom: -4px; width: 2px; margin-left: -1px; background: #fff; border-radius: 1px; }
+.scrub-bls { position: absolute; top: -7px; bottom: -7px; width: 0; margin-left: -1px; border-left: 2px dashed var(--bls); }
+.scrub-knob { position: absolute; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: var(--coral); border: 3px solid var(--isl-solid); box-shadow: 0 0 0 2px var(--coral-soft); }
+.scrub-labels { display: flex; justify-content: space-between; margin-top: 7px; font-size: .74rem; color: var(--muted); }
+.hero-ctrl { display: flex; align-items: center; justify-content: space-between; gap: 4px; margin-top: 10px; }
+.step { flex: none; height: 30px; padding: 0 6px; border: 0; border-radius: 999px; background: transparent; color: var(--text); font-weight: 700; font-size: .76rem; transition: background .2s, transform .15s var(--spring); }
+.step:hover { background: rgba(255, 255, 255, .1); }
+.step:active { transform: scale(.92); }
+.step:focus-visible { outline: 2px solid var(--blue); }
+.salary-wrap { position: relative; flex: 1; min-width: 0; }
+.salary-wrap::before { content: "$"; position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); font-weight: 700; font-size: .9rem; }
+.salary { width: 100%; height: 34px; border-radius: 999px; border: 1px solid var(--line); background: var(--field); text-align: center; font-weight: 700; font-size: 16px; outline: none; padding: 0 8px 0 20px; transition: border-color .15s, box-shadow .15s; }
+.salary:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-soft); }
+
+/* B. profile */
+.w-profile { flex: 0 0 184px; display: flex; flex-direction: column; }
+.sub-label { margin: auto 0 4px; padding-top: 10px; font-size: .7rem; font-weight: 600; color: var(--faint); }
+.line-input { width: 100%; height: 28px; border: 0; border-bottom: 1px solid var(--line); background: transparent; font-size: 14px; font-weight: 600; outline: none; padding: 0 2px; transition: border-color .15s; }
+.line-input::placeholder { color: var(--faint); font-weight: 500; }
+.line-input:focus { border-color: var(--blue); }
+.line-input + .line-input { margin-top: 4px; font-weight: 500; color: var(--muted); }
+.line-input.invalid { border-color: var(--error); }
+.days { display: flex; justify-content: space-between; }
+.day { width: 25px; height: 28px; display: grid; place-items: center; border: 0; background: none; border-radius: 8px; transition: background .2s, color .2s; }
+.day b { font-size: .86rem; color: var(--faint); font-weight: 600; }
+.day:hover { background: rgba(255, 255, 255, .08); }
+.day[aria-pressed="true"] { background: rgba(255, 255, 255, .12); color: var(--text); }
+.day[aria-pressed="true"] b { color: var(--text); }
+.day:focus-visible { outline: 2px solid var(--blue); }
+
+/* C. your skills */
+.w-skills { flex: 0 0 132px; }
+.tiles { display: grid; grid-template-columns: repeat(3, 32px); gap: 8px; }
+.tile {
+  position: relative; width: 32px; height: 32px; border-radius: 9px; border: 0; display: grid; place-items: center;
+  font-size: .68rem; font-weight: 800; color: #fff; letter-spacing: -.01em; transition: transform .2s var(--spring);
 }
-.icon-btn:hover { background: rgba(255, 255, 255, .16); }
-.icon-btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
-.tabpanel { animation: fade .3s var(--spring); }
-@keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-
-/* ---------- profile form (dark) ---------- */
-.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.grid2.money-row { grid-template-columns: 1fr 120px; }
-.field { margin-bottom: 12px; }
-.field > label, .field > .label { display: block; font-size: .76rem; font-weight: 600; color: var(--isl-muted); margin-bottom: 6px; letter-spacing: .01em; }
-.input {
-  width: 100%; height: 42px; padding: 0 12px; border-radius: var(--r-field); border: 1px solid var(--isl-line);
-  background: var(--isl-field); color: var(--isl-text); font-size: 16px; outline: none; transition: border-color .15s, background .15s, box-shadow .15s;
+.tile:hover { transform: translateY(-2px) scale(1.08); }
+.tile:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.tile::after {  /* tooltip */
+  content: attr(data-label); position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%) translateY(4px);
+  white-space: nowrap; font-size: .7rem; font-weight: 600; padding: 4px 8px; border-radius: 6px; background: #000; color: #fff;
+  opacity: 0; pointer-events: none; transition: opacity .15s, transform .15s; z-index: 2;
 }
-.input::placeholder { color: var(--isl-faint); }
-.input:hover { background: var(--isl-field-hover); }
-.input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-soft); }
-.unit { position: relative; }
-.unit .input { padding-right: 44px; }
-.unit::after { content: attr(data-unit); position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--isl-faint); font-size: .8rem; font-weight: 600; pointer-events: none; }
-.money .input { padding-left: 26px; }
-.money::before { content: "$"; position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--isl-muted); font-weight: 600; }
-.field.invalid .input { border-color: var(--error); background: rgba(255, 143, 125, .08); }
-.err { display: none; margin-top: 5px; font-size: .78rem; font-weight: 600; color: var(--error); }
-.field.invalid .err { display: block; }
+.tile:hover::after, .tile:focus-visible::after { opacity: 1; transform: translateX(-50%); }
+.tile.more { background: rgba(255, 255, 255, .1); color: var(--muted); }
+.tile.add { background: transparent; border: 1px dashed rgba(255, 255, 255, .25); color: var(--muted); font-size: 1rem; overflow: hidden; }
+.tile.add select { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.tile.add:focus-within { outline: 2px solid var(--blue); outline-offset: 2px; }
 
-.upload {
-  width: 100%; height: 42px; display: flex; align-items: center; gap: 10px; padding: 0 12px; border-radius: var(--r-field);
-  border: 1px dashed rgba(255, 255, 255, .2); background: transparent; cursor: pointer; text-align: left; font-size: .88rem; transition: border-color .15s, background .15s;
+/* D. skills to add */
+.w-todo { flex: 1 1 auto; min-width: 210px; }
+.todo { list-style: none; margin: 0; padding: 0; }
+.todo li { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; align-items: center; padding: 6px 0; border-top: 1px solid var(--line); }
+.todo li:first-child { border-top: 0; padding-top: 0; }
+.todo-name { font-weight: 600; font-size: .88rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.todo-val { font-size: .72rem; color: var(--mint); font-weight: 700; }
+.todo-val small { color: var(--faint); font-weight: 600; }
+.check {
+  grid-row: 1 / 3; grid-column: 2; width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid rgba(255, 255, 255, .35);
+  background: transparent; display: grid; place-items: center; color: transparent; transition: background .2s, border-color .2s, transform .2s var(--spring);
 }
-.upload:hover, .upload.over { border-color: var(--blue); background: var(--blue-soft); }
-.upload:focus-visible { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-soft); }
-.upload svg { color: var(--blue); flex: none; }
-.upload b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.upload span { color: var(--isl-faint); margin-left: auto; white-space: nowrap; font-size: .8rem; }
-.upload.has-file { border-style: solid; border-color: var(--isl-line); background: var(--isl-field); }
-.note { margin: 6px 0 0; font-size: .78rem; color: var(--isl-muted); }
-.note:empty { display: none; }
-.note.warn { color: var(--coral); }
+.check:hover { border-color: var(--mint); transform: scale(1.1); }
+.check:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.todo li.done .todo-name { text-decoration: line-through; color: var(--faint); }
+.todo li.done .check { background: var(--mint); border-color: var(--mint); color: #062B26; }
+.todo-note { margin: 4px 0 0; font-size: .68rem; color: var(--faint); }
 
-.chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.chip {
-  height: 30px; padding: 0 7px 0 11px; border: 0; border-radius: var(--r-pill); background: var(--blue-soft); color: #C9D8FF;
-  font-size: .8rem; font-weight: 600; display: inline-flex; align-items: center; gap: 5px; cursor: pointer;
+/* E. number cycler */
+.w-big { flex: 0 0 168px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.big { font-family: var(--font-display); font-size: 1.95rem; font-weight: 300; letter-spacing: .01em; line-height: 1.1; margin: 4px 0 2px; }
+.big-sub { font-size: .72rem; color: var(--faint); }
+.big-bar { width: 100%; height: 2px; margin: 8px 0; background: var(--line); border-radius: 1px; overflow: hidden; }
+.big-bar i { display: block; height: 100%; width: 25%; background: var(--text); }
+.big-ctrl { display: flex; align-items: center; gap: 14px; margin-top: auto; }
+.round { width: 34px; height: 34px; border-radius: 50%; border: 0; background: rgba(255, 255, 255, .1); display: grid; place-items: center; transition: background .2s, transform .15s var(--spring); }
+.round.sm { width: 26px; height: 26px; background: transparent; }
+.round:hover { background: rgba(255, 255, 255, .18); }
+.round:active { transform: scale(.9); }
+.round:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+/* F. resume */
+.w-resume { flex: 0 0 88px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; border: 0; background: none; color: var(--text); text-align: center; }
+.w-resume:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
+.w-resume.over { background: var(--blue-soft); }
+.doc { width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--text); display: grid; place-items: center; }
+.w-resume b { font-size: .8rem; font-weight: 600; }
+.w-resume span { font-size: .68rem; color: var(--faint); max-width: 84px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---------- narrow screens: wrap widgets ---------- */
+@media (max-width: 1200px) {
+  .widgets { flex-wrap: wrap; gap: 6px 0; }
+  .sep { display: none; }
+  .w-hero { flex: 1 1 100%; }
+  .w-profile, .w-big { flex: 1 1 45%; }
+  .w-skills { flex: 0 0 132px; } .w-todo { flex: 1 1 50%; } .w-resume { flex: 1 1 30%; flex-direction: row; justify-content: flex-start; }
 }
-.chip:hover { background: rgba(91, 140, 255, .28); }
-.chip:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
-.chip svg { opacity: .7; }
-.add-skill {
-  height: 30px; padding: 0 26px 0 11px; border-radius: var(--r-pill); border: 1px dashed rgba(255, 255, 255, .22); background-color: transparent;
-  color: var(--isl-muted); font-size: .8rem; font-weight: 600; cursor: pointer; appearance: none;
-  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
-  background-position: calc(100% - 13px) 13px, calc(100% - 9px) 13px; background-size: 4px 4px; background-repeat: no-repeat;
+@media (max-width: 560px) {
+  .panel { padding: 8px 10px 14px; }
+  .w-hero { gap: 12px; } .art { width: 104px; height: 104px; } .art b { font-size: 1.7rem; }
+  .w-profile, .w-big, .w-todo { flex: 1 1 100%; }
+  .pill-sub, .hero-cta kbd { display: none; }
 }
-.add-skill option { color: #111; }
-.add-skill:focus-visible { outline: none; border-color: var(--blue); }
 
-.primary {
-  width: 100%; height: 46px; margin-top: 6px; border: 0; border-radius: var(--r-pill); background: #F5F4F0; color: #14151A;
-  font-weight: 700; font-size: .95rem; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  transition: transform .15s var(--spring), background .15s;
-}
-.primary:hover { background: #fff; transform: translateY(-1px); }
-.primary:active { transform: translateY(1px) scale(.99); }
-.primary:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
-.primary[disabled] { opacity: .7; cursor: progress; }
-.ghost-btn {
-  height: 36px; padding: 0 14px; border-radius: var(--r-pill); border: 1px solid var(--isl-line); background: rgba(255,255,255,.04);
-  color: var(--isl-text); font-size: .84rem; font-weight: 600; cursor: pointer;
-}
-.ghost-btn:hover { background: rgba(255, 255, 255, .1); }
-.ghost-btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
-
-/* ---------- range tab ---------- */
-.verdict { margin: 4px 0 0; font-family: var(--font-display); font-size: 1.6rem; font-weight: 700; letter-spacing: -.02em; line-height: 1.15; }
-.verdict em { font-style: normal; color: var(--coral); }
-.context { margin: 6px 0 0; color: var(--isl-muted); font-size: .9rem; line-height: 1.45; }
-.context b { color: var(--isl-text); font-weight: 600; }
-.chart { position: relative; margin: 50px 6px 0; }
-.track { position: relative; height: 16px; border-radius: var(--r-pill); background: rgba(255, 255, 255, .08); }
-.band { position: absolute; top: 0; bottom: 0; border-radius: var(--r-pill); background: linear-gradient(90deg, var(--blue-deep), var(--blue) 50%, var(--blue-deep)); }
-.mark-p50 { position: absolute; top: -5px; bottom: -5px; width: 3px; margin-left: -1.5px; border-radius: 2px; background: #fff; }
-.mark-bls { position: absolute; top: -13px; bottom: -13px; width: 0; margin-left: -1px; border-left: 2px dashed var(--bls); }
-.bls-tag { position: absolute; top: 100%; margin-top: 2px; transform: translateX(-50%); font-size: .7rem; font-weight: 700; color: var(--bls); white-space: nowrap; }
-.you { position: absolute; bottom: 8px; width: 0; transition: left .8s var(--spring); }
-.you-pin { position: absolute; bottom: 0; left: 0; display: flex; flex-direction: column; align-items: center; transform: translateX(-50%); }
-.you-pin.edge-l { transform: translateX(-18px); align-items: flex-start; }
-.you-pin.edge-r { transform: translateX(calc(-100% + 18px)); align-items: flex-end; }
-.you-label { white-space: nowrap; background: var(--coral); color: #1A0D08; font-weight: 800; font-size: .8rem; padding: 4px 10px; border-radius: var(--r-pill); }
-.you-stem { width: 2px; height: 10px; background: var(--coral); }
-.you-dot { width: 16px; height: 16px; border-radius: 50%; background: #15161B; border: 4px solid var(--coral); margin-bottom: -8px; }
-.edge-l .you-stem { margin-left: 8px; } .edge-r .you-stem { margin-right: 8px; }
-.ticks { position: relative; height: 40px; margin-top: 18px; }
-.tick { position: absolute; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; white-space: nowrap; }
-.tick.l { transform: none; align-items: flex-start; } .tick.r { transform: translateX(-100%); align-items: flex-end; }
-.tick b { font-size: .92rem; font-weight: 700; }
-.tick span { font-size: .72rem; color: var(--isl-muted); font-weight: 600; }
-.tick .bls-note { color: var(--bls); }
-.legend { margin: 14px 0 0; font-size: .76rem; color: var(--isl-faint); line-height: 1.45; }
-.actions { display: flex; gap: 8px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--isl-line); }
-.actions .ghost-btn:last-child { margin-left: auto; }
-
-/* ---------- skills tab ---------- */
-.skills-head { margin: 2px 0 10px; font-size: .84rem; color: var(--isl-muted); line-height: 1.45; }
-.recs { list-style: none; margin: 0; padding: 0; }
-.rec { padding: 11px 0; border-top: 1px solid var(--isl-line); display: grid; grid-template-columns: 1fr auto; gap: 7px 12px; align-items: center; }
-.rec:first-child { border-top: 0; }
-.rec-name { font-weight: 600; font-size: .92rem; }
-.rec-val { font-weight: 700; font-size: .92rem; color: var(--mint); }
-.rec-val small { color: var(--isl-faint); font-weight: 600; }
-.rec-bar { grid-column: 1 / -1; height: 4px; border-radius: 2px; background: var(--mint-soft); overflow: hidden; }
-.rec-bar i { display: block; height: 100%; width: 0; border-radius: inherit; background: var(--mint); transition: width .7s var(--spring); }
-.basis { margin: 10px 0 0; font-size: .76rem; color: var(--isl-faint); }
-
-.empty { padding: 18px 0 6px; }
-.empty h2 { margin: 0; font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; }
-.empty p { margin: 6px 0 14px; color: var(--isl-muted); font-size: .9rem; line-height: 1.45; }
-
-/* ---------- desktop app (src/desktop): the native window is the island ----------
-   The island fills the window; Python sizes and shapes the window to match, so no size transition here. */
-html.desktop, html.desktop body { background: #121318; min-height: 0; height: 100%; overflow: hidden; }
-html.desktop .sky, html.desktop .brand, html.desktop .hero { display: none; }
+/* ---------- desktop app (src/desktop): the native window is the island ---------- */
+html.desktop, html.desktop body { background: var(--isl-solid); min-height: 0; height: 100%; overflow: hidden; }
+html.desktop .sky, html.desktop .hero { display: none; }
 html.desktop .island {
   inset: 0; left: 0; transform: none; width: 100% !important; height: 100% !important; border-radius: 0;
-  background: #121318; -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none; transition: none;
+  background: var(--isl-bg); -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none; transition: none;
 }
 html.desktop .island.expanded { box-shadow: none; border-radius: 0; }
-html.desktop .panel { width: 560px; }  /* fixed: 100vw would follow the (collapsed) window width */
+html.desktop .panel { width: var(--panel-w); }
 html.desktop .island.expanded > .pill, html.desktop .island:not(.expanded) > .panel { display: none; }
+html.desktop .pill-sub { display: inline; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
-@media (max-width: 600px) {
-  .brand { display: none; }
-  .panel { padding: 12px 14px 16px; }
-  .tab { padding: 0 11px; }
-  .grid2 { grid-template-columns: 1fr; gap: 0; }
-  .grid2.money-row { grid-template-columns: 1fr 104px; gap: 10px; }
-  .hero { padding-bottom: 12vh; }
-  .pill-sub, .hero-cta kbd { display: none; }
-}
-/* The desktop window is only as wide as the island (< 600 px); keep the desktop layout, not the phone one. */
-html.desktop .panel { padding: 14px 20px 20px; }
-html.desktop .tab { padding: 0 14px; }
-html.desktop .grid2 { grid-template-columns: 1fr 1fr; gap: 12px; }
-html.desktop .grid2.money-row { grid-template-columns: 1fr 120px; }
-html.desktop .pill-sub { display: inline; }
 </style>
 </head>
 <body class="open">
@@ -277,82 +260,105 @@ html.desktop .pill-sub { display: inline; }
   <div class="cloud mid c2"></div><div class="cloud mid c3"></div><div class="cloud near c4"></div>
 </div>
 
-<div class="brand" aria-hidden="true"><span class="logo">$</span>Salary Advisor</div>
-
 <div class="island expanded" id="island">
-  <!-- collapsed face -->
   <button class="face pill" id="pill" type="button" aria-expanded="true" aria-controls="panel" tabindex="-1">
-    <span class="pill-dot" id="pill-dot"></span>
-    <span id="pill-text">Check your pay</span>
+    <span class="pill-dot" id="pill-dot"></span><span id="pill-text">Check your pay</span>
     <span class="pill-sub" id="pill-sub"></span>
-    <span class="glyph idle" id="glyph" aria-hidden="true"><i></i><b></b></span>
+    <span class="glyph" id="glyph" aria-hidden="true"><i></i><b></b></span>
   </button>
 
-  <!-- expanded face -->
   <section class="face panel" id="panel" aria-label="Salary Advisor">
-    <div class="panel-top">
-      <div class="tabs" role="tablist" aria-label="Sections">
-        <button class="tab" role="tab" id="tab-profile" aria-controls="tp-profile" aria-selected="true">Profile</button>
-        <button class="tab" role="tab" id="tab-range" aria-controls="tp-range" aria-selected="false" tabindex="-1">Range</button>
-        <button class="tab" role="tab" id="tab-skills" aria-controls="tp-skills" aria-selected="false" tabindex="-1">Skills <span class="badge" id="skills-badge" hidden></span></button>
-      </div>
+    <div class="topbar">
+      <span class="mark" aria-hidden="true">$</span><span class="top-title">Salary Advisor</span>
+      <span class="status" id="status" aria-live="polite"><i></i><span id="status-text">Live estimate</span></span>
       <div class="top-actions">
-        <button class="icon-btn" id="collapse" type="button" aria-label="Collapse to the top bar (Esc)" title="Collapse (Esc)">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M5 12h14"/></svg>
+        <button class="icon-btn" id="reset" type="button" aria-label="Reset to the example profile" title="Reset">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+        </button>
+        <button class="icon-btn" id="collapse" type="button" aria-label="Collapse (Esc)" title="Collapse (Esc)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
         </button>
       </div>
     </div>
 
-    <!-- Profile -->
-    <form class="tabpanel" id="tp-profile" role="tabpanel" aria-labelledby="tab-profile" novalidate>
-      <div class="grid2">
-        <div class="field" data-field="title">
-          <label for="title">Job title</label>
-          <input class="input" id="title" value="Data Scientist">
-          <div class="err" id="title-err">Enter a job title</div>
-        </div>
-        <div class="field" data-field="location">
-          <label for="location">Location</label>
-          <input class="input" id="location" value="San Jose, CA" placeholder="City, state">
-          <div class="err" id="location-err">Enter a city and state</div>
-        </div>
-      </div>
-      <div class="grid2 money-row">
-        <div class="field">
-          <label for="salary">Current or offered salary</label>
-          <div class="unit money" data-unit="/ yr"><input class="input" id="salary" value="110,000" inputmode="numeric" placeholder="Optional"></div>
-        </div>
-        <div class="field">
-          <label for="years">Experience</label>
-          <div class="unit" data-unit="yrs"><input class="input" id="years" inputmode="numeric" placeholder="e.g. 2"></div>
+    <div class="widgets" id="widgets">
+      <!-- A. pay card -->
+      <div class="w w-hero" style="--i:0">
+        <div class="art" id="art" data-mood="none"><span class="art-label">YOU</span><b id="art-amt">$110k</b><span class="art-badge" id="art-badge" aria-hidden="true">·</span></div>
+        <div class="hero-info">
+          <div class="hero-title" id="verdict">Estimating…</div>
+          <div class="hero-sub" id="role"></div>
+          <div class="scrub" role="img" id="scrub" aria-label="">
+            <div class="scrub-track">
+              <div class="scrub-band" id="band"></div><div class="scrub-bls" id="bls-m"></div>
+              <div class="scrub-p50" id="p50-m"></div><div class="scrub-knob" id="knob"></div>
+            </div>
+            <div class="scrub-labels"><span id="lo">P10</span><span id="hi">P90</span></div>
+          </div>
+          <div class="hero-ctrl">
+            <button class="step" id="minus" type="button" aria-label="Try $5,000 less">−5k</button>
+            <div class="salary-wrap"><input class="salary" id="salary" value="110,000" inputmode="numeric" aria-label="Your current or offered salary per year" placeholder="Your salary"></div>
+            <button class="step" id="plus" type="button" aria-label="Try $5,000 more">+5k</button>
+          </div>
         </div>
       </div>
-      <div class="field">
-        <span class="label">Resume · optional</span>
-        <button type="button" class="upload" id="upload">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M6 10l6-6 6 6M4 20h16"/></svg>
-          <b id="upload-name">Upload to fill your skills</b><span id="upload-hint">PDF, DOCX, TXT</span>
-        </button>
-        <input type="file" id="file" accept=".pdf,.docx,.txt" hidden>
-        <p class="note" id="note" aria-live="polite"></p>
-      </div>
-      <div class="field">
-        <span class="label">Your skills</span>
-        <div class="chips" id="chips"></div>
-      </div>
-      <button class="primary" id="cta" type="submit">Estimate my range</button>
-    </form>
+      <div class="sep"></div>
 
-    <!-- Range -->
-    <div class="tabpanel" id="tp-range" role="tabpanel" aria-labelledby="tab-range" hidden></div>
-    <!-- Skills -->
-    <div class="tabpanel" id="tp-skills" role="tabpanel" aria-labelledby="tab-skills" hidden></div>
+      <!-- B. profile -->
+      <div class="w w-profile" style="--i:1">
+        <p class="w-label">Profile</p>
+        <input class="line-input" id="title" value="Data Scientist" aria-label="Job title" placeholder="Job title">
+        <input class="line-input" id="location" value="San Jose, CA" aria-label="Location (city, state)" placeholder="City, state">
+        <p class="sub-label" id="days-label">Years of experience</p>
+        <div class="days" id="days" role="group" aria-labelledby="days-label"></div>
+      </div>
+      <div class="sep"></div>
+
+      <!-- C. your skills -->
+      <div class="w w-skills" style="--i:2">
+        <p class="w-label">Your skills</p>
+        <div class="tiles" id="tiles"></div>
+      </div>
+      <div class="sep"></div>
+
+      <!-- D. skills to add -->
+      <div class="w w-todo" style="--i:3">
+        <p class="w-label">Skills linked to higher pay</p>
+        <ul class="todo" id="todo"></ul>
+        <p class="todo-note">Associations in the data, not guaranteed raises.</p>
+      </div>
+      <div class="sep"></div>
+
+      <!-- E. number cycler -->
+      <div class="w w-big" style="--i:4">
+        <p class="w-label" id="big-label">Typical pay (1/4)</p>
+        <div class="big" id="big">$—</div>
+        <div class="big-sub" id="big-sub">model median</div>
+        <div class="big-bar"><i id="big-bar"></i></div>
+        <div class="big-ctrl">
+          <button class="round sm" id="prev" type="button" aria-label="Previous figure">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M15 5 8 12l7 7z"/></svg></button>
+          <button class="round" id="play" type="button" aria-label="Auto-play figures" aria-pressed="false">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" id="play-ico"><path d="M8 5v14l11-7z"/></svg></button>
+          <button class="round sm" id="next" type="button" aria-label="Next figure">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="m9 5 7 7-7 7z"/></svg></button>
+        </div>
+      </div>
+      <div class="sep"></div>
+
+      <!-- F. resume -->
+      <button class="w w-resume" id="upload" type="button" style="--i:5" aria-label="Upload resume to fill your skills">
+        <span class="doc" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M12 18v-6M9 15l3-3 3 3"/></svg></span>
+        <b>Resume</b><span id="upload-name">PDF, DOCX, TXT</span>
+      </button>
+      <input type="file" id="file" accept=".pdf,.docx,.txt" hidden>
+    </div>
   </section>
 </div>
 
 <main class="hero">
   <h1>Is your pay on target?</h1>
-  <p>Everything lives in the bar at the top: your profile, where your pay sits in the market range for your role and city, and the skills linked to higher pay.</p>
+  <p>Everything lives in the bar at the top: where your pay sits in the market range for your role and city, and the skills linked to higher pay. Change anything and it updates live.</p>
   <button class="hero-cta" id="hero-cta" type="button">Open the advisor <kbd>/</kbd></button>
 </main>
 
@@ -364,13 +370,14 @@ const money = (x) => usd.format(x);
 const short = (x) => (x >= 1000 ? `$${Math.round(x / 1000)}k` : money(x));
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const digits = (s) => s.replace(/[^\d]/g, "");
-const X_ICON = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
-
+const DESKTOP = document.documentElement.classList.contains("desktop");
 const island = $("#island"), pill = $("#pill"), panel = $("#panel");
+const DEFAULTS = { title: "Data Scientist", location: "San Jose, CA", salary: 110000, years: null, skills: [] };
+const state = { all: [], labels: {}, ...structuredClone(DEFAULTS), result: null };
 
 /* ================= API: Python bridge in the desktop app, HTTP in the browser ================= */
 const bridgeReady = new Promise((ok) => {
-  if (!document.documentElement.classList.contains("desktop")) return ok(false);
+  if (!DESKTOP) return ok(false);
   if (window.pywebview?.api?.call) return ok(true);
   window.addEventListener("pywebviewready", () => ok(true), { once: true });
 });
@@ -383,21 +390,17 @@ async function api(path, body) {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   return { ok: res.ok, status: res.status, data: await res.json() };
 }
-const state = { all: [], labels: {}, skills: [], result: null, profile: null, tab: "profile" };
 
 /* ================= island: size, expand, collapse ================= */
-const DESKTOP = document.documentElement.classList.contains("desktop");
 let lastFit = "";
 function fit() {
   const open = island.classList.contains("expanded");
   const face = open ? panel : pill;
   const w = face.offsetWidth, h = face.offsetHeight;
-  island.style.width = w + "px";
-  island.style.height = h + "px";
-  // Desktop app: ask Python to size and shape the native window to the island (see src/desktop/app.py).
+  island.style.width = w + "px"; island.style.height = h + "px";
   if (DESKTOP && window.pywebview?.api?.fit && w && h) {
     const key = `${w}x${h}x${open}`;
-    if (key !== lastFit) { lastFit = key; window.pywebview.api.fit(w, h, open ? 30 : 22, window.devicePixelRatio || 1); }
+    if (key !== lastFit) { lastFit = key; window.pywebview.api.fit(w, h, open ? 32 : 22, window.devicePixelRatio || 1); }
   }
 }
 window.addEventListener("pywebviewready", () => { lastFit = ""; fit(); });
@@ -405,123 +408,67 @@ new ResizeObserver(fit).observe(panel);
 new ResizeObserver(fit).observe(pill);
 window.addEventListener("resize", fit);
 
-function expand(tab) {
+function expand() {
   island.classList.add("expanded"); document.body.classList.add("open");
-  pill.setAttribute("aria-expanded", "true"); pill.tabIndex = -1;
-  panel.inert = false;
-  if (tab) selectTab(tab, false);
-  fit();
-  setTimeout(() => (document.querySelector(`#tab-${state.tab}`)).focus({ preventScroll: true }), 60);
+  pill.setAttribute("aria-expanded", "true"); pill.tabIndex = -1; panel.inert = false; fit();
+  setTimeout(() => $("#salary").focus({ preventScroll: true }), 80);
 }
 function collapse() {
   island.classList.remove("expanded"); document.body.classList.remove("open");
-  pill.setAttribute("aria-expanded", "false"); pill.tabIndex = 0;
-  panel.inert = true;
-  fit();
+  pill.setAttribute("aria-expanded", "false"); pill.tabIndex = 0; panel.inert = true; fit();
 }
-pill.addEventListener("click", () => expand());
-// Desktop app hooks: the global hotkey / tray call saToggle(); clicking into another app collapses the
-// island, except while the resume file picker is open (it takes focus away from the window too).
-window.saToggle = () => (island.classList.contains("expanded") ? collapse() : expand());
-let picking = false;
-if (document.documentElement.classList.contains("desktop")) {
-  window.addEventListener("blur", () => { if (!picking && island.classList.contains("expanded")) collapse(); });
-  window.addEventListener("focus", () => { picking = false; });
-}
+pill.addEventListener("click", expand);
 $("#collapse").addEventListener("click", () => { collapse(); pill.focus(); });
-$("#hero-cta").addEventListener("click", () => expand());
+$("#hero-cta").addEventListener("click", expand);
 document.addEventListener("keydown", (e) => {
   const typing = /INPUT|SELECT|TEXTAREA/.test(document.activeElement?.tagName);
   if (e.key === "Escape" && island.classList.contains("expanded")) { collapse(); pill.focus(); }
   else if (e.key === "/" && !typing && !island.classList.contains("expanded")) { e.preventDefault(); expand(); }
 });
 document.addEventListener("pointerdown", (e) => {
-  if (island.classList.contains("expanded") && !island.contains(e.target) && !e.target.closest("#hero-cta")) collapse();
+  if (!DESKTOP && island.classList.contains("expanded") && !island.contains(e.target) && !e.target.closest("#hero-cta")) collapse();
 });
-
-/* ================= tabs ================= */
-const TABS = ["profile", "range", "skills"];
-function selectTab(name, focus = true) {
-  state.tab = name;
-  TABS.forEach((t) => {
-    const on = t === name, tab = $(`#tab-${t}`);
-    tab.setAttribute("aria-selected", on); tab.tabIndex = on ? 0 : -1;
-    $(`#tp-${t}`).hidden = !on;
-  });
-  if (focus) $(`#tab-${name}`).focus();
-  fit();
-}
-TABS.forEach((t) => $(`#tab-${t}`).addEventListener("click", () => selectTab(t)));
-$(".tabs").addEventListener("keydown", (e) => {
-  const i = TABS.indexOf(state.tab);
-  if (e.key === "ArrowRight") selectTab(TABS[(i + 1) % 3]);
-  if (e.key === "ArrowLeft") selectTab(TABS[(i + 2) % 3]);
-});
-
-/* ================= collapsed status line ================= */
-function setPill({ text, sub = "", dot = "", glyphAt = null }) {
-  $("#pill-text").textContent = text;
-  $("#pill-sub").textContent = sub;
-  $("#pill-dot").className = "pill-dot " + dot;
-  const g = $("#glyph");
-  g.classList.toggle("idle", glyphAt == null);
-  if (glyphAt != null) g.querySelector("b").style.left = glyphAt + "%";
+window.saToggle = () => (island.classList.contains("expanded") ? collapse() : expand());
+let picking = false;
+if (DESKTOP) {
+  window.addEventListener("blur", () => { if (!picking && island.classList.contains("expanded")) collapse(); });
+  window.addEventListener("focus", () => { picking = false; });
 }
 
-/* ================= profile: skills, formatting, resume ================= */
-function renderChips() {
-  const chips = state.skills.map((k) =>
-    `<button type="button" class="chip" data-skill="${k}" aria-label="Remove ${esc(state.labels[k])}">${esc(state.labels[k])}${X_ICON}</button>`).join("");
+/* ================= status line ================= */
+function setStatus(text, kind = "") {
+  $("#status-text").textContent = text;
+  $("#status").className = "status " + kind;
+}
+function setPill({ text, sub = "", you = false, at = null }) {
+  $("#pill-text").textContent = text; $("#pill-sub").textContent = sub;
+  $("#pill-dot").className = "pill-dot" + (you ? " is-you" : "");
+  const b = $("#glyph b"); b.style.display = at == null ? "none" : ""; if (at != null) b.style.left = at + "%";
+}
+
+/* ================= profile inputs ================= */
+function renderDays() {
+  const opts = [0, 1, 2, 3, 4, 5, 6];
+  $("#days").innerHTML = opts.map((y) =>
+    `<button type="button" class="day" data-y="${y}" aria-pressed="${state.years === y}" aria-label="${y === 6 ? "6 or more" : y} years"><b>${y === 6 ? "6+" : y}</b></button>`).join("");
+}
+const TILE_COLORS = ["#3B82F6", "#8B5CF6", "#EC4899", "#F97316", "#10B981", "#06B6D4", "#EAB308", "#EF4444"];
+function abbr(label) {
+  const words = label.replace(/[^A-Za-z0-9+# ]/g, " ").trim().split(/\s+/);
+  if (label.length <= 3) return label;
+  return words.length > 1 ? (words[0][0] + words[1][0]).toUpperCase() : label.slice(0, 2);
+}
+function tileColor(key) { let h = 0; for (const c of key) h = (h * 31 + c.charCodeAt(0)) >>> 0; return TILE_COLORS[h % TILE_COLORS.length]; }
+function renderTiles() {
+  const shown = state.skills.slice(0, 7), extra = state.skills.length - shown.length;
+  const tiles = shown.map((k) => `<button type="button" class="tile" data-skill="${k}" data-label="${esc(state.labels[k])} · click to remove"
+      aria-label="Remove ${esc(state.labels[k])}" style="background:${tileColor(k)}">${esc(abbr(state.labels[k]))}</button>`);
+  if (extra > 0) tiles.push(`<span class="tile more" data-label="${extra} more">+${extra}</span>`);
   const left = state.all.filter((s) => !state.skills.includes(s.key));
-  const add = left.length ? `<select class="add-skill" id="add-skill" aria-label="Add a skill"><option value="">+ Add skill</option>${
-    left.map((s) => `<option value="${s.key}">${esc(s.label)}</option>`).join("")}</select>` : "";
-  $("#chips").innerHTML = chips + add;
+  if (left.length) tiles.push(`<span class="tile add" data-label="Add a skill">+<select id="add-skill" aria-label="Add a skill">
+      <option value="">Add a skill</option>${left.map((s) => `<option value="${s.key}">${esc(s.label)}</option>`).join("")}</select></span>`);
+  $("#tiles").innerHTML = tiles.join("");
 }
-$("#chips").addEventListener("click", (e) => {
-  const c = e.target.closest(".chip");
-  if (c) { state.skills = state.skills.filter((k) => k !== c.dataset.skill); renderChips(); $("#add-skill")?.focus(); }
-});
-$("#chips").addEventListener("change", (e) => {
-  if (e.target.id === "add-skill" && e.target.value) { state.skills.push(e.target.value); renderChips(); $("#add-skill")?.focus(); }
-});
-$("#salary").addEventListener("input", (e) => { const d = digits(e.target.value).slice(0, 7); e.target.value = d ? Number(d).toLocaleString("en-US") : ""; });
-$("#years").addEventListener("input", (e) => { e.target.value = digits(e.target.value).slice(0, 2); });
-
-const upload = $("#upload"), file = $("#file"), note = $("#note");
-upload.addEventListener("click", () => { picking = true; file.click(); });
-["dragenter", "dragover"].forEach((t) => upload.addEventListener(t, (e) => { e.preventDefault(); upload.classList.add("over"); }));
-["dragleave", "drop"].forEach((t) => upload.addEventListener(t, () => upload.classList.remove("over")));
-upload.addEventListener("drop", (e) => { e.preventDefault(); e.dataTransfer.files[0] && handleFile(e.dataTransfer.files[0]); });
-file.addEventListener("change", () => file.files[0] && handleFile(file.files[0]));
-function setNote(t, warn = false) { note.textContent = t; note.classList.toggle("warn", warn); fit(); }
-
-async function handleFile(f) {
-  if (!/\.(pdf|docx|txt)$/i.test(f.name)) return setNote("Use a PDF, DOCX or TXT file.", true);
-  if (f.size > 10 * 1024 * 1024) return setNote("This file is over 10 MB. Try a smaller copy.", true);
-  $("#upload-name").textContent = f.name; $("#upload-hint").textContent = "Reading…"; upload.classList.add("has-file");
-  try {
-    const data = await new Promise((ok, bad) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1] || ""); r.onerror = bad; r.readAsDataURL(f); });
-    const res = await api("/api/parse-resume", { name: f.name, data });
-    const out = res.data;
-    if (!res.ok) throw new Error(out.error);
-    state.skills = [...new Set([...state.skills, ...out.skills])]; renderChips();
-    if (out.years != null) $("#years").value = Math.round(out.years);
-    $("#upload-hint").textContent = "Replace";
-    if (!out.skills.length && out.years == null) setNote("No skills found. If it's a scanned PDF, try a DOCX or add skills below.", true);
-    else setNote(`Found ${out.skills.length} skill${out.skills.length === 1 ? "" : "s"}${out.years != null ? ` and ${out.years} years of experience` : ""}. Edit below if anything is off.`);
-  } catch {
-    $("#upload-hint").textContent = "Try another"; setNote("We couldn't read this file. Try another PDF, DOCX or TXT, or add skills below.", true);
-  }
-}
-
-function setInvalid(field, msg) {
-  const el = document.querySelector(`[data-field="${field}"]`); if (!el) return;
-  el.classList.toggle("invalid", !!msg);
-  const input = el.querySelector("input"); input.setAttribute("aria-invalid", msg ? "true" : "false");
-  const err = el.querySelector(".err"); if (msg) { err.textContent = msg; input.setAttribute("aria-describedby", err.id); }
-  fit();
-}
-["title", "location"].forEach((f) => $("#" + f).addEventListener("input", () => setInvalid(f, "")));
 
 /* ================= results ================= */
 const pct = (x, lo, hi) => Math.min(Math.max(((x - lo) / (hi - lo)) * 100, 0), 100);
@@ -532,128 +479,129 @@ function scale(r, cur) {
 }
 function verdict(cur, r) {
   const gap = cur - r.p50;
-  if (cur < r.p10) return { long: `You're <em>below the market range</em>`, short: "Below the market range" };
-  if (cur > r.p90) return { long: `You're <em>above the market range</em>`, short: "Above the market range" };
-  if (Math.abs(gap) < 500) return { long: `You're <em>right at typical pay</em>`, short: "Right at typical pay" };
+  if (cur < r.p10) return { html: `You're <em>below the market range</em>`, text: "Below the market range", mood: "below", badge: "↓" };
+  if (cur > r.p90) return { html: `You're <em>above the market range</em>`, text: "Above the market range", mood: "above", badge: "↑" };
+  if (Math.abs(gap) < 500) return { html: `You're <em>right at typical pay</em>`, text: "Right at typical pay", mood: "typical", badge: "=" };
   const side = gap < 0 ? "below" : "above";
-  return { long: `You're <em>${money(Math.abs(gap))} ${side}</em> typical`, short: `${short(Math.abs(gap))} ${side} typical` };
+  return { html: `You're <em>${money(Math.abs(gap))} ${side}</em> typical`, text: `${short(Math.abs(gap))} ${side} typical`,
+           mood: gap < 0 ? "below" : "above", badge: gap < 0 ? "↓" : "↑" };
 }
 
-function emptyTab(title, body) {
-  return `<div class="empty"><h2>${title}</h2><p>${body}</p><button type="button" class="ghost-btn" data-go="profile">Go to profile</button></div>`;
+const FIGURES = [
+  { key: "p50", label: "Typical pay", sub: "model median (P50)" },
+  { key: "p10", label: "Low end", sub: "10th percentile" },
+  { key: "p90", label: "High end", sub: "90th percentile" },
+  { key: "bls_median", label: "BLS median", sub: "government baseline" },
+];
+let fig = 0;
+function renderFigure() {
+  const f = FIGURES[fig], r = state.result?.range;
+  $("#big-label").textContent = `${f.label} (${fig + 1}/${FIGURES.length})`;
+  $("#big").textContent = r ? money(r[f.key]) : "$—";
+  $("#big-sub").textContent = f.sub;
+  $("#big-bar").style.width = `${((fig + 1) / FIGURES.length) * 100}%`;
 }
 
-function renderRange(p, r) {
-  const cur = p.salary, [lo, hi] = scale(r, cur);
-  const x = { p10: pct(r.p10, lo, hi), p50: pct(r.p50, lo, hi), p90: pct(r.p90, lo, hi), bls: pct(r.bls_median, lo, hi) };
-  const same = Math.abs(r.bls_median - r.p50) / r.p50 < 0.01;
-  const where = `<b>${esc(p.title)}</b> in <b>${esc(p.location)}</b>`;
-  const head = cur
-    ? `<h2 class="verdict">${verdict(cur, r).long}</h2><p class="context">Typical pay for ${where}: <b>${money(r.p50)}</b> a year.</p>`
-    : `<h2 class="verdict">Typical pay is ${money(r.p50)}</h2><p class="context">For ${where}. <button type="button" class="ghost-btn" data-go="profile" style="height:28px;margin-left:4px">Add your salary</button></p>`;
-  let you = "";
+function renderTodo() {
+  const recs = (state.result?.recommendations || []).slice(0, 3);
+  $("#todo").innerHTML = recs.length ? recs.map((r) => `<li data-skill="${r.skill}">
+      <span class="todo-name">${esc(r.label)}</span>
+      <button type="button" class="check" aria-label="I have ${esc(r.label)}: add it to my skills">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg></button>
+      <span class="todo-val">+${money(r.delta)} <small>/ yr</small></span></li>`).join("")
+    : `<li><span class="todo-name">You list every skill we track</span></li>`;
+}
+
+function renderResult() {
+  const r = state.result.range, cur = state.salary;
+  const [lo, hi] = scale(r, cur);
+  const x = (v) => pct(v, lo, hi).toFixed(2) + "%";
+  $("#band").style.left = x(r.p10); $("#band").style.width = (pct(r.p90, lo, hi) - pct(r.p10, lo, hi)).toFixed(2) + "%";
+  $("#p50-m").style.left = x(r.p50); $("#bls-m").style.left = x(r.bls_median);
+  $("#lo").textContent = `P10 ${short(r.p10)}`; $("#hi").textContent = `P90 ${short(r.p90)}`;
+  $("#role").textContent = `${state.title} · ${state.location}`;
+  const knob = $("#knob");
   if (cur) {
-    const xy = pct(cur, lo, hi), edge = xy < 10 ? " edge-l" : xy > 90 ? " edge-r" : "";
-    you = `<div class="you" data-x="${xy.toFixed(2)}" style="left:${x.p10.toFixed(2)}%"><div class="you-pin${edge}"><span class="you-label">You · ${short(cur)}</span><span class="you-stem"></span><span class="you-dot"></span></div></div>`;
+    const v = verdict(cur, r);
+    $("#verdict").innerHTML = v.html;
+    $("#art").dataset.mood = v.mood; $("#art-badge").textContent = v.badge; $("#art-amt").textContent = short(cur);
+    knob.hidden = false; knob.style.left = x(cur);
+    setPill({ text: `You're ${v.text}`, sub: `· ${state.title}`, you: true, at: pct(cur, lo, hi) });
+  } else {
+    $("#verdict").innerHTML = `Typical pay is ${money(r.p50)}`;
+    $("#art").dataset.mood = "none"; $("#art-badge").textContent = "?"; $("#art-amt").textContent = "—";
+    knob.hidden = true;
+    setPill({ text: `Typical pay ${short(r.p50)}`, sub: `· ${state.title}` });
   }
-  return `${head}
-    <div class="chart" role="img" aria-label="Market range ${money(r.p10)} to ${money(r.p90)}, typical ${money(r.p50)}${cur ? `, you ${money(cur)}` : ""}, BLS median ${money(r.bls_median)}">
-      <div class="track">
-        <div class="band" style="left:${x.p10.toFixed(2)}%;width:${(x.p90 - x.p10).toFixed(2)}%"></div>
-        <div class="mark-bls" style="left:${x.bls.toFixed(2)}%">${same ? "" : `<span class="bls-tag">BLS ${short(r.bls_median)}</span>`}</div>
-        <div class="mark-p50" style="left:${x.p50.toFixed(2)}%"></div>
-        ${you}
-      </div>
-      <div class="ticks">
-        <div class="tick${x.p10 < 8 ? " l" : ""}" style="left:${x.p10.toFixed(2)}%"><b>${short(r.p10)}</b><span>Low · P10</span></div>
-        <div class="tick" style="left:${x.p50.toFixed(2)}%"><b>${short(r.p50)}</b><span>Typical · P50</span>${same ? '<span class="bls-note">= BLS median</span>' : ""}</div>
-        <div class="tick${x.p90 > 92 ? " r" : ""}" style="left:${x.p90.toFixed(2)}%"><b>${short(r.p90)}</b><span>High · P90</span></div>
-      </div>
-    </div>
-    <p class="legend">Blue bar: the middle 80% of pay for similar roles. Dashed line: BLS median wage for this occupation and area.</p>
-    <div class="actions"><button type="button" class="ghost-btn" data-go="profile">Edit profile</button><button type="button" class="ghost-btn" data-go="skills">Skills linked to higher pay →</button></div>`;
+  $("#scrub").setAttribute("aria-label", `Market range ${money(r.p10)} to ${money(r.p90)}, typical ${money(r.p50)}, BLS median ${money(r.bls_median)}${cur ? `, you ${money(cur)}` : ""}`);
+  renderFigure(); renderTodo();
 }
 
-function renderSkills(p, recs) {
-  if (!recs.length) return `<div class="empty"><h2>You list every skill we track</h2><p>There's nothing missing from our skill list.</p></div>`;
-  const top = Math.max(...recs.map((r) => r.delta)) || 1, n = p.skills.length;
-  const rows = recs.map((r) => `<li class="rec"><span class="rec-name">${esc(r.label)}</span><span class="rec-val">+${money(r.delta)} <small>/ yr</small></span>
-      <span class="rec-bar"><i data-w="${Math.max(r.delta / top, 0.04) * 100}"></i></span></li>`).join("");
-  const basis = n ? `Based on your ${n} skill${n === 1 ? "" : "s"}${p.years != null ? ` and ${p.years} years of experience` : ""}.`
-                  : "You haven't listed skills, so every skill counts as missing. Add yours in Profile for sharper advice.";
-  return `<p class="skills-head">Associated change in typical pay if the skill were on your profile. Not a guaranteed raise.</p>
-    <ul class="recs">${rows}</ul><p class="basis">${basis}</p>`;
-}
-
-function animateIn(root) {
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    root.querySelectorAll(".you").forEach((el) => (el.style.left = el.dataset.x + "%"));
-    root.querySelectorAll(".rec-bar i").forEach((el) => (el.style.width = el.dataset.w + "%"));
-  }));
-}
-panel.addEventListener("click", (e) => {
-  const go = e.target.closest("[data-go]")?.dataset.go;
-  if (!go) return;
-  selectTab(go);
-  if (go === "profile" && e.target.textContent.includes("salary")) $("#salary").focus();
-});
-$("#tab-skills").addEventListener("click", () => animateIn($("#tp-skills")));
-
-function showEmptyResults() {
-  $("#tp-range").innerHTML = emptyTab("No estimate yet", "Fill in your profile and select Estimate my range. Your pay is placed on the market range for the role and city.");
-  $("#tp-skills").innerHTML = emptyTab("No estimate yet", "Estimate your range first, then see which skills are linked to higher pay in similar roles.");
-}
-
-/* ================= submit ================= */
-$("#tp-profile").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const p = {
-    title: $("#title").value.trim(), location: $("#location").value.trim(),
-    salary: Number(digits($("#salary").value)) || null,
-    years: $("#years").value === "" ? null : Number($("#years").value), skills: [...state.skills],
-  };
-  const errors = {};
-  if (!p.title) errors.title = "Enter a job title";
-  if (!p.location) errors.location = "Enter a city and state";
-  ["title", "location"].forEach((f) => setInvalid(f, errors[f]));
-  if (Object.keys(errors).length) { $("#" + Object.keys(errors)[0]).focus(); return; }
-
-  const cta = $("#cta"); cta.disabled = true; cta.textContent = "Estimating…";
-  setPill({ text: "Estimating…", dot: "busy" });
+/* ================= live estimate ================= */
+let timer = 0, seq = 0;
+function estimateSoon(delay = 280) { clearTimeout(timer); timer = setTimeout(estimate, delay); }
+async function estimate() {
+  const missing = !state.title.trim() ? "title" : !state.location.trim() ? "location" : null;
+  $("#title").classList.toggle("invalid", missing === "title");
+  $("#location").classList.toggle("invalid", missing === "location");
+  if (missing) { setStatus(`Add a ${missing === "title" ? "job title" : "city and state"}`, "warn"); return; }
+  const id = ++seq;
+  setStatus("Updating…", "busy");
   try {
-    const res = await api("/api/estimate", p);
-    const out = res.data;
-    if (res.status === 422 && out.errors) { Object.entries(out.errors).forEach(([f, m]) => setInvalid(f, m)); setPill({ text: "Check your pay" }); return; }
-    if (!res.ok) throw new Error(out.error);
-    const r = out.range;
-    $("#tp-range").innerHTML = renderRange(p, r);
-    $("#tp-skills").innerHTML = renderSkills(p, out.recommendations);
-    const sb = $("#skills-badge"); sb.hidden = !out.recommendations.length; sb.textContent = out.recommendations.length;
-    if (p.salary) {
-      const [lo, hi] = scale(r, p.salary);
-      setPill({ text: `You're ${verdict(p.salary, r).short}`, sub: `· ${p.title}`, dot: "is-you", glyphAt: pct(p.salary, lo, hi) });
-    } else {
-      setPill({ text: `Typical pay ${short(r.p50)}`, sub: `· ${p.title}` });
-    }
-    selectTab("range", false);
-    animateIn($("#tp-range"));
+    const res = await api("/api/estimate", { title: state.title, location: state.location, salary: state.salary,
+                                             years: state.years, skills: state.skills });
+    if (id !== seq) return;  // a newer estimate is on its way
+    if (!res.ok) throw new Error(res.data?.error);
+    state.result = res.data; renderResult(); setStatus("Live estimate");
   } catch {
-    $("#tp-range").innerHTML = emptyTab("We couldn't estimate this role", "Try a more common job title, such as Software Engineer or Data Analyst, or a nearby large city.");
-    setPill({ text: "Couldn't estimate", sub: "· open to edit" });
-    selectTab("range", false);
-  } finally {
-    cta.disabled = false; cta.textContent = "Estimate my range";
+    if (id === seq) setStatus("Couldn't estimate this role. Try a common title or a nearby city", "warn");
   }
+}
+
+/* ================= inputs → state ================= */
+$("#salary").addEventListener("input", (e) => {
+  const d = digits(e.target.value).slice(0, 7);
+  e.target.value = d ? Number(d).toLocaleString("en-US") : "";
+  state.salary = Number(d) || null; estimateSoon();
 });
+$("#title").addEventListener("input", (e) => { state.title = e.target.value; estimateSoon(450); });
+$("#location").addEventListener("input", (e) => { state.location = e.target.value; estimateSoon(450); });
+
+/* ================= resume ================= */
+const upload = $("#upload"), file = $("#file");
+upload.addEventListener("click", () => { picking = true; file.click(); });
+["dragenter", "dragover"].forEach((t) => upload.addEventListener(t, (e) => { e.preventDefault(); upload.classList.add("over"); }));
+["dragleave", "drop"].forEach((t) => upload.addEventListener(t, () => upload.classList.remove("over")));
+upload.addEventListener("drop", (e) => { e.preventDefault(); e.dataTransfer.files[0] && handleFile(e.dataTransfer.files[0]); });
+file.addEventListener("change", () => file.files[0] && handleFile(file.files[0]));
+async function handleFile(f) {
+  if (!/\.(pdf|docx|txt)$/i.test(f.name)) return setStatus("Use a PDF, DOCX or TXT resume", "warn");
+  if (f.size > 10 * 1024 * 1024) return setStatus("That file is over 10 MB", "warn");
+  $("#upload-name").textContent = "Reading…";
+  try {
+    const data = await new Promise((ok, bad) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1] || ""); r.onerror = bad; r.readAsDataURL(f); });
+    const res = await api("/api/parse-resume", { name: f.name, data });
+    if (!res.ok) throw new Error(res.data?.error);
+    const out = res.data;
+    state.skills = [...new Set([...state.skills, ...out.skills])];
+    if (out.years != null) state.years = Math.min(Math.round(out.years), 6);
+    $("#upload-name").textContent = f.name;
+    renderTiles(); renderDays(); estimateSoon(0);
+    setStatus(out.skills.length || out.years != null
+      ? `Found ${out.skills.length} skill${out.skills.length === 1 ? "" : "s"}${out.years != null ? ` · ${out.years} yrs` : ""}`
+      : "No skills found. Try a DOCX, or add skills with +", out.skills.length ? "" : "warn");
+  } catch {
+    $("#upload-name").textContent = "Try another"; setStatus("We couldn't read that file", "warn");
+  }
+}
 
 /* ================= start ================= */
-showEmptyResults();
-// Desktop app starts as a quiet pill at the top of the screen (class start-open is a test switch).
+renderDays(); renderTiles();
 if (DESKTOP && !document.documentElement.classList.contains("start-open")) collapse();
 fit();
-api("/api/skills").then(({ data: all }) => {
-  state.all = all; all.forEach((s) => (state.labels[s.key] = s.label)); renderChips(); fit();
-}).catch(() => { $("#chips").innerHTML = '<p class="note warn">Can\'t reach the server. Is <code>python -m src.app.server</code> running?</p>'; fit(); });
+api("/api/skills").then(({ data }) => {
+  state.all = data; data.forEach((s) => (state.labels[s.key] = s.label)); renderTiles(); estimate();
+}).catch(() => setStatus("Can't reach the app server. Is python -m src.app.server running?", "warn"));
 </script>
 </body>
 </html>
