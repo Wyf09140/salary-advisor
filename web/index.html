@@ -420,6 +420,14 @@ function collapse() {
   fit();
 }
 pill.addEventListener("click", () => expand());
+// Desktop app hooks: the global hotkey / tray call saToggle(); clicking into another app collapses the
+// island, except while the resume file picker is open (it takes focus away from the window too).
+window.saToggle = () => (island.classList.contains("expanded") ? collapse() : expand());
+let picking = false;
+if (document.documentElement.classList.contains("desktop")) {
+  window.addEventListener("blur", () => { if (!picking && island.classList.contains("expanded")) collapse(); });
+  window.addEventListener("focus", () => { picking = false; });
+}
 $("#collapse").addEventListener("click", () => { collapse(); pill.focus(); });
 $("#hero-cta").addEventListener("click", () => expand());
 document.addEventListener("keydown", (e) => {
@@ -480,7 +488,7 @@ $("#salary").addEventListener("input", (e) => { const d = digits(e.target.value)
 $("#years").addEventListener("input", (e) => { e.target.value = digits(e.target.value).slice(0, 2); });
 
 const upload = $("#upload"), file = $("#file"), note = $("#note");
-upload.addEventListener("click", () => file.click());
+upload.addEventListener("click", () => { picking = true; file.click(); });
 ["dragenter", "dragover"].forEach((t) => upload.addEventListener(t, (e) => { e.preventDefault(); upload.classList.add("over"); }));
 ["dragleave", "drop"].forEach((t) => upload.addEventListener(t, () => upload.classList.remove("over")));
 upload.addEventListener("drop", (e) => { e.preventDefault(); e.dataTransfer.files[0] && handleFile(e.dataTransfer.files[0]); });

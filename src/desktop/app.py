@@ -73,6 +73,79 @@ class NotchWindow:
             form.Invoke(Action(apply))
 
 
+    # ---------- desktop behaviour: hotkey, tray, focus ----------
+
+    def toggle(self) -> None:
+        """Open or close the island and bring the window forward so the keyboard goes to it."""
+        form = self._form()
+        if form is not None:
+            from System import Action
+            form.Invoke(Action(form.Activate))
+        self.window.evaluate_js("window.saToggle && window.saToggle()")
+
+    def setup_shell(self) -> None:
+        """Tray icon (Open / Quit), no taskbar button. Runs on the UI thread once the window is shown."""
+        form = self._form()
+        if form is None:
+            return
+        from System import Action
+        from System.Drawing import Bitmap, Brushes, Color, Font, FontStyle, Graphics, Icon, SolidBrush
+        from System.Drawing.Drawing2D import SmoothingMode
+        from System.Windows.Forms import ContextMenuStrip, NotifyIcon
+
+        def build():
+            hide_from_taskbar(form.Handle.ToInt64())
+            bmp = Bitmap(32, 32)
+            g = Graphics.FromImage(bmp)
+            g.SmoothingMode = SmoothingMode.AntiAlias
+            g.FillEllipse(SolidBrush(Color.FromArgb(255, 20, 21, 26)), 0, 0, 31, 31)
+            g.DrawString("$", Font("Segoe UI", 15.0, FontStyle.Bold), Brushes.White, 7.0, 1.0)
+            g.Dispose()
+            menu = ContextMenuStrip()
+            menu.Items.Add("Open advisor  (Ctrl+Alt+S)").Click += lambda s, e: self.toggle()
+            menu.Items.Add("Quit").Click += lambda s, e: self.window.destroy()
+            self.tray = NotifyIcon()
+            self.tray.Icon = Icon.FromHandle(bmp.GetHicon())
+            self.tray.Text = "Salary Advisor"
+            self.tray.ContextMenuStrip = menu
+            self.tray.DoubleClick += lambda s, e: self.toggle()
+            self.tray.Visible = True
+
+        form.Invoke(Action(build))
+
+    def remove_tray(self) -> None:
+        tray = getattr(self, "tray", None)
+        if tray is not None:  # otherwise a dead icon lingers in the tray until hovered
+            tray.Visible = False
+            tray.Dispose()
+
+
+def hide_from_taskbar(hwnd: int) -> None:
+    """Give the window the tool-window style so it has no taskbar button (the tray icon replaces it).
+    Done with SetWindowLong rather than WinForms ShowInTaskbar, which recreates the window handle and
+    breaks the embedded WebView2. Hide/show makes the taskbar pick up the change."""
+    GWL_EXSTYLE, WS_EX_TOOLWINDOW, WS_EX_APPWINDOW = -20, 0x00000080, 0x00040000
+    user32, h = ctypes.windll.user32, ctypes.c_void_p(hwnd)
+    style = user32.GetWindowLongW(h, GWL_EXSTYLE)
+    user32.ShowWindow(h, 0)  # SW_HIDE
+    user32.SetWindowLongW(h, GWL_EXSTYLE, (style | WS_EX_TOOLWINDOW) & ~WS_EX_APPWINDOW)
+    user32.ShowWindow(h, 4)  # SW_SHOWNOACTIVATE
+
+
+def hotkey_loop(on_press, modifiers: int = 0x0002 | 0x0001 | 0x4000, key: int = ord("S")) -> None:
+    """Global Ctrl+Alt+S via Win32 RegisterHotKey (no extra packages). Blocks; run in a daemon thread.
+    0x0002 = MOD_CONTROL, 0x0001 = MOD_ALT, 0x4000 = MOD_NOREPEAT."""
+    from ctypes import wintypes
+    user32 = ctypes.windll.user32
+    if not user32.RegisterHotKey(None, 1, modifiers, key):
+        print("[salary-advisor] Ctrl+Alt+S is taken by another app; use the tray icon instead.", file=sys.stderr)
+        return
+    msg = wintypes.MSG()
+    while user32.GetMessageW(ctypes.byref(msg), None, 0, 0) > 0:
+        if msg.message == 0x0312:  # WM_HOTKEY
+            on_press()
+
+
 notch = NotchWindow()
 
 
@@ -100,6 +173,10 @@ def main() -> None:
         frameless=True, easy_drag=False, on_top=True, resizable=False, shadow=False,
         background_color="#121318",  # same as the island, so a resize never flashes another colour
     )
+    notch.window.events.shown += notch.setup_shell
+    notch.window.events.closed += notch.remove_tray
+    if sys.platform == "win32":
+        threading.Thread(target=hotkey_loop, args=(notch.toggle,), daemon=True).start()
     webview.start()
 
 
