@@ -83,3 +83,65 @@ Prompt:
 I'm able to access it rn give me something to commit
 ```
 Outcome: Claude fixed `extract_years` in `src/app/resume_parser.py`. It previously returned the largest "N years" anywhere in the resume (e.g. "50 years of history"). Now it only counts "N years/yrs ... experience" and ignores values over 40. Claude added `test_extract_years_ignores_unrelated_numbers` to `tests/test_interfaces.py`, updated this log, and ran the tests (9 passed). Sophak made the commit.
+
+### 2026-11-24 · Claude Code (Opus 5.5) · Purpose: research (tooling)
+Prompt:
+```
+I wanted to know where is all my claude skill
+```
+Outcome: Claude listed the skill locations under `C:\Users\User\.claude`: account-synced skills, synced engineering/zapier plugin skills, and one local plugin. It noted that the repo's `.claude/agents` are subagents, not skills.
+
+Prompt:
+```
+I wanted to add skill into my claude that works either with terminal or this chat how would I do that?
+```
+Outcome: Claude explained personal skills (`~/.claude/skills/<name>/SKILL.md`), project skills (`.claude/skills/`) and claude.ai uploads, with an example SKILL.md. After a pasted PowerShell error (the path had been run as a command), it explained how to create the folder and file. It then checked the install: the `oil-ui` UI/UX skill was installed and loaded.
+
+### 2026-11-24 · Claude Code (Opus 5.5) · Purpose: coding (frontend)
+Prompt:
+```
+please build me the UI for this project: with this style from the skills:
+
+fly-island
+
+please commit every step of the way
+```
+Outcome: Claude used the oil-ui skill. "fly-island" is not a named style in that skill, so it was read as a floating-islands look: results float as white rounded panels over a sky gradient. Committed on `app/frontend` in steps:
+1. Theme: `.streamlit/config.toml` and `src/app/theme.py` (CSS variables, Manrope font, island styling).
+2. Layout: an input island and a range island with an HTML P10–P90 band, P50 tick, dashed BLS median line and a coral "You" marker (`src/app/components.py`).
+3. Skills island: ranked uplift bars from `recommend()`. The resume parse is cached and fills editable skills and years-of-experience inputs.
+4. States: missing title/location, missing salary hint, unreadable resume, failed prediction; component unit tests (13 tests pass).
+5. Independent visual review of screenshots, then fixes.
+Screenshots were taken with Playwright driving Edge (the skill's screenshot tool needs Node 22; Node 20 is installed).
+
+### 2026-11-24 · Claude Code (Opus 5.5) · Purpose: explanation
+Prompt:
+```
+how do I run the app
+```
+Outcome: Claude explained activating `.venv` and running `streamlit run src/app/app.py` on the `app/frontend` branch, and noted the stub numbers.
+
+Prompt:
+```
+why is it on streamlit?
+```
+Outcome: Claude explained that the team scaffold already chose Streamlit (requirements.txt, Makefile `make app`, README, the starter app.py) and listed the trade-offs and alternatives.
+
+Prompt:
+```
+So are you building on streamlit or on a dedicated front end?
+```
+Outcome: Claude confirmed the UI so far was Streamlit only (app.py, theme.py, components.py).
+
+### 2026-11-24 · Claude Code (Opus 5.5) · Purpose: coding (frontend)
+Prompt:
+```
+I wanted to build on a dedicated frontend, keep the streamlit. but with the skill built me the frontend that  i wanted to project it to me. With this style fly-island from the skills
+```
+Outcome: Claude kept the Streamlit app unchanged and built a dedicated web frontend with the oil-ui skill in the same floating-island style. It committed each step on `app/frontend`:
+1. `src/app/server.py`: a stdlib-only JSON API and static server (`/api/skills`, `/api/parse-resume`, `/api/estimate`) wrapping the same `predict()`/`recommend()` and resume parser; 4 new tests.
+2. `web/index.html`: the page layout (sky, islands with cast shadows, profile form).
+3. Interaction: resume upload fills editable skill chips and years; inline field errors; verdict-first range island; mint skills island framed as associations.
+4. `make web` in the Makefile and README.
+5. An independent design review (7/10), then fixes: the hero floats highest, layered clouds, coral verdict matching the You pin, BLS line drawn on the bar, hero-sized empty preview, phone scrolls to the verdict.
+Claude opened the page in the browser at http://localhost:8600. 17 tests pass.
