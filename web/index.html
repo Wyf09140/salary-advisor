@@ -4,40 +4,40 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Salary Advisor</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%2310213A'/%3E%3Ctext x='16' y='22' font-family='Arial' font-weight='700' font-size='18' fill='white' text-anchor='middle'%3E$%3C/text%3E%3C/svg%3E">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%2314151A'/%3E%3Ctext x='16' y='22' font-family='Arial' font-weight='700' font-size='18' fill='white' text-anchor='middle'%3E$%3C/text%3E%3C/svg%3E">
 <style>
-/* Floating islands, seen from above: white islands hover over a sky and cast soft shadows below.
-   Colour roles: horizon blue = the model's range, coral = you, slate dashed = BLS baseline,
-   mint = skill advice. Every value below is a token; components only reference tokens. */
+/* Notch UI: the whole advisor lives in a dark island docked to the top edge of the page.
+   Collapsed it is a one-line status pill; expanded it is a tabbed panel (Profile, Range, Skills).
+   Colour roles on dark: blue = the model's range, coral = you, slate dashed = BLS baseline, mint = skill advice. */
 :root {
-  --sky-1: #C9DFFF; --sky-2: #E4EFFF; --sky-3: #F6F9FF;
-  --ink: #10213A; --muted: #56677F; --faint: #8593A8; --line: #E1E8F3;
-  --island: #FFFFFF; --field: #F3F7FE;
-  --accent: #2F6BFF; --accent-2: #1F55E0; --accent-soft: #E3ECFF; --band-edge: #9BBBFF;
-  --you: #E5532E; --you-text: #E5532E; --you-soft: #FFEEE8;  /* one coral for marker and words; 3.9:1 on white for large text */
-  --bls: #7C8AA0;
-  --mint: #14B8A6; --mint-text: #0B7C70; --mint-soft: #DDF6F2;
-  --error: #C8321F; --error-soft: #FFF0ED;
-  --r-xl: 30px; --r-md: 16px; --r-pill: 999px;
-  --font: 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --ease: cubic-bezier(.2, .8, .2, 1);
+  /* page */
+  --sky-1: #C9DFFF; --sky-2: #E4EFFF; --sky-3: #F6F9FF; --ink: #10213A; --ink-muted: #4F6079;
+  /* island (dark glass) */
+  --isl-bg: rgba(18, 19, 24, .93); --isl-text: #F5F4F0; --isl-muted: rgba(245, 244, 240, .62);
+  --isl-faint: rgba(245, 244, 240, .42); --isl-line: rgba(255, 255, 255, .08); --isl-field: rgba(255, 255, 255, .07);
+  --isl-field-hover: rgba(255, 255, 255, .1);
+  --blue: #5B8CFF; --blue-deep: #3A63D8; --blue-soft: rgba(91, 140, 255, .18);
+  --coral: #FF7A59; --mint: #2DD4BF; --mint-soft: rgba(45, 212, 191, .16); --bls: #9AA6B8;
+  --error: #FF8F7D;
+  /* shape + motion */
+  --r-pill-bottom: 0 0 22px 22px; --r-panel-bottom: 0 0 30px 30px; --r-field: 12px; --r-pill: 999px;
+  --spring: cubic-bezier(.16, 1, .3, 1);
+  --font: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", sans-serif;
+  --font-display: "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, sans-serif;
 }
 * { box-sizing: border-box; }
 html {
   -webkit-text-size-adjust: 100%; min-height: 100%; background-color: var(--sky-3);
   background-image: linear-gradient(180deg, var(--sky-1) 0, var(--sky-2) 360px, var(--sky-3) 900px);
 }
-body { margin: 0; font-family: var(--font); color: var(--ink); font-variant-numeric: tabular-nums; }
+body { margin: 0; min-height: 100vh; font-family: var(--font); color: var(--ink); font-variant-numeric: tabular-nums; }
 button, input, select { font: inherit; color: inherit; }
+[hidden] { display: none !important; }
 
-/* ---------- sky: drifting clouds far below the islands ---------- */
+/* ---------- sky ---------- */
 .sky { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 0; }
-/* Each cloud is a cluster of puffs on a flat base; nearer clouds are larger, sharper and brighter. */
 .cloud {
-  position: absolute; aspect-ratio: 3 / 1; animation: drift 110s linear infinite;
+  position: absolute; aspect-ratio: 3 / 1; animation: drift 120s linear infinite;
   background:
     radial-gradient(closest-side, #fff 96%, transparent) 8% 78% / 34% 62% no-repeat,
     radial-gradient(closest-side, #fff 96%, transparent) 34% 30% / 38% 92% no-repeat,
@@ -47,263 +47,296 @@ button, input, select { font: inherit; color: inherit; }
   filter: drop-shadow(0 18px 18px rgba(64, 110, 190, .16));
 }
 .cloud.far { width: 260px; opacity: .55; filter: blur(3px); animation-duration: 170s; }
-.cloud.mid { width: 380px; opacity: .75; filter: blur(1.5px) drop-shadow(0 14px 14px rgba(64, 110, 190, .12)); animation-duration: 135s; }
+.cloud.mid { width: 380px; opacity: .75; animation-duration: 140s; }
 .cloud.near { width: 520px; opacity: .92; }
-.cloud.c1 { top: 6%; left: 58%; }
-.cloud.c2 { top: 30%; left: -6%; animation-delay: -50s; }
-.cloud.c3 { top: 64%; left: 44%; animation-delay: -90s; }
-.cloud.c4 { top: 82%; left: 4%; animation-delay: -30s; }
-.cloud.c5 { top: 48%; left: 78%; animation-delay: -120s; }
+.c1 { top: 10%; left: 70%; } .c2 { top: 34%; left: -6%; animation-delay: -50s; }
+.c3 { top: 66%; left: 46%; animation-delay: -90s; } .c4 { top: 82%; left: 2%; animation-delay: -30s; }
+.c5 { top: 50%; left: 80%; animation-delay: -120s; }
 @keyframes drift { from { transform: translateX(-15vw); } to { transform: translateX(25vw); } }
 
-/* ---------- page ---------- */
-.page { position: relative; z-index: 1; max-width: 1160px; margin: 0 auto; padding: 28px 24px 80px; }
-.bar { display: flex; align-items: center; gap: 12px; margin-bottom: 36px; }
-.logo { flex: none; width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; background: var(--ink); color: #fff; font-weight: 800; }
-.brand { font-weight: 800; font-size: 1.15rem; letter-spacing: -.01em; white-space: nowrap; }
-.scope { margin-left: auto; font-size: .82rem; color: var(--muted); background: rgba(255,255,255,.65); padding: 6px 12px; border-radius: var(--r-pill); white-space: nowrap; }
+/* ---------- page behind the island ---------- */
+.brand { position: fixed; top: 18px; left: 22px; z-index: 1; display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.02rem; }
+.logo { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; background: #14151A; color: #fff; font-weight: 800; font-size: 14px; }
+.hero {
+  position: relative; z-index: 1; min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+  justify-content: flex-end; text-align: center; padding: 0 20px 16vh; transition: opacity .4s var(--spring);
+}
+body.open .hero { opacity: .35; }
+.hero h1 { margin: 0; font-family: var(--font-display); font-size: clamp(2.2rem, 5.4vw, 4rem); font-weight: 700; letter-spacing: -.03em; line-height: 1.04; }
+.hero p { margin: 18px auto 0; max-width: 34rem; font-size: 1.05rem; line-height: 1.55; color: var(--ink-muted); }
+.hero-cta {
+  margin-top: 30px; height: 50px; padding: 0 26px; border: 0; border-radius: var(--r-pill); background: #14151A; color: #fff;
+  font-weight: 600; font-size: 1rem; cursor: pointer; display: inline-flex; align-items: center; gap: 10px;
+  box-shadow: 0 14px 28px -16px rgba(20, 21, 26, .8); transition: transform .2s var(--spring);
+}
+.hero-cta:hover { transform: translateY(-2px); }
+.hero-cta:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
+kbd { font-family: inherit; font-size: .78rem; padding: 2px 7px; border-radius: 6px; background: rgba(255,255,255,.16); }
 
-.layout { display: grid; grid-template-columns: minmax(320px, 400px) 1fr; gap: 40px; align-items: start; }
-.stack { display: flex; flex-direction: column; gap: 52px; isolation: isolate; }
-
-/* ---------- islands ---------- */
+/* ---------- the island ---------- */
 .island {
-  --alt: 26px;  /* how high the island floats: distance to its shadow */
-  position: relative; background: var(--island); border-radius: var(--r-xl);
-  padding: 28px 30px; box-shadow: 0 1px 2px rgba(31, 72, 150, .06), 0 10px 30px -18px rgba(31, 72, 150, .25);
+  position: fixed; top: 0; left: 50%; z-index: 10; transform: translateX(-50%);
+  width: 300px; height: 38px; overflow: hidden; color: var(--isl-text);
+  background: var(--isl-bg); border-radius: var(--r-pill-bottom);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4); backdrop-filter: blur(20px) saturate(1.4);
+  box-shadow: 0 18px 46px rgba(0, 0, 0, .22), inset 0 -1px 0 rgba(255, 255, 255, .06);
+  transition: width .52s var(--spring), height .52s var(--spring), border-radius .52s var(--spring), box-shadow .22s;
 }
-.island::after {  /* the island's shadow on the sky below */
-  content: ""; position: absolute; left: 10%; right: 10%; bottom: calc(-1 * var(--alt) - 14px); height: 28px;
-  background: radial-gradient(closest-side, rgba(25, 62, 140, .22), transparent); filter: blur(4px); z-index: -1;
-  transition: transform .6s var(--ease), opacity .6s var(--ease);
-}
-/* Depth: the hero floats highest (lifted, larger, darker shadow far below); the form rests lowest. */
-.island.high {
-  --alt: 58px; margin-top: -14px;
-  box-shadow: 0 2px 4px rgba(31, 72, 150, .08), 0 34px 60px -28px rgba(25, 62, 140, .45);
-}
-.island.high::after { left: 6%; right: 6%; height: 36px; background: radial-gradient(closest-side, rgba(25, 62, 140, .3), transparent); filter: blur(6px); }
-.form-island { --alt: 14px; position: sticky; top: 24px; margin-top: 22px; isolation: isolate; background: rgba(255, 255, 255, .94); }
-.form-island::after { left: 16%; right: 16%; height: 20px; opacity: .7; }
+.island.expanded { border-radius: var(--r-panel-bottom); box-shadow: 0 28px 70px rgba(0, 0, 0, .32), inset 0 -1px 0 rgba(255, 255, 255, .06); }
+.island > .face { position: absolute; top: 0; left: 50%; transform: translateX(-50%); transition: opacity .22s ease; }
+.island:not(.expanded) > .panel, .island.expanded > .pill { opacity: 0; pointer-events: none; }
 
-.eyebrow { margin: 0 0 6px; font-size: .75rem; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
-.h { margin: 0 0 22px; font-size: 1.3rem; font-weight: 800; letter-spacing: -.015em; }
+/* collapsed: status pill */
+.pill {
+  display: inline-flex; align-items: center; gap: 10px; height: 38px; padding: 0 16px 0 14px; white-space: nowrap;
+  border: 0; background: none; cursor: pointer; font-size: .9rem; font-weight: 600;
+}
+.pill:focus-visible { outline: none; }
+.island:has(.pill:focus-visible) { box-shadow: 0 0 0 3px var(--blue), 0 18px 46px rgba(0, 0, 0, .22); }
+.pill-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--blue); box-shadow: 0 0 0 3px var(--blue-soft); flex: none; }
+.pill-dot.is-you { background: var(--coral); box-shadow: 0 0 0 3px rgba(255, 122, 89, .2); }
+.pill-dot.busy { animation: pulse 1s ease-in-out infinite; }
+@keyframes pulse { 50% { transform: scale(.6); opacity: .6; } }
+.pill-sub { color: var(--isl-muted); font-weight: 500; }
+.glyph { position: relative; width: 46px; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, .12); flex: none; margin-left: 4px; }
+.glyph i { position: absolute; top: 0; bottom: 0; left: 18%; width: 64%; border-radius: 3px; background: var(--blue); }
+.glyph b { position: absolute; top: 50%; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-radius: 50%; background: var(--coral); border: 2px solid #15161B; left: 40%; transition: left .6s var(--spring); }
+.glyph.idle b { display: none; }
 
-/* ---------- form ---------- */
-.field { margin-bottom: 18px; }
-.field > label, .field > .label { display: block; font-weight: 600; font-size: .9rem; margin-bottom: 7px; }
-.opt { font-weight: 500; color: var(--faint); }
+/* expanded: panel */
+.panel { width: min(560px, calc(100vw - 16px)); padding: 14px 20px 20px; }
+.panel-top { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.tabs { display: flex; gap: 4px; padding: 3px; border-radius: var(--r-pill); background: rgba(255, 255, 255, .06); }
+.tab {
+  height: 32px; padding: 0 14px; border: 0; border-radius: var(--r-pill); background: none; cursor: pointer;
+  font-size: .86rem; font-weight: 600; color: var(--isl-muted); display: inline-flex; align-items: center; gap: 6px;
+  transition: background .2s, color .2s;
+}
+.tab:hover { color: var(--isl-text); }
+.tab[aria-selected="true"] { background: rgba(255, 255, 255, .12); color: var(--isl-text); }
+.tab:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
+.badge { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; font-size: .7rem; display: inline-grid; place-items: center; background: var(--mint-soft); color: var(--mint); }
+.top-actions { margin-left: auto; display: flex; gap: 6px; }
+.icon-btn {
+  width: 32px; height: 32px; border-radius: 50%; border: 0; background: rgba(255, 255, 255, .08); color: var(--isl-text);
+  display: grid; place-items: center; cursor: pointer; transition: background .2s;
+}
+.icon-btn:hover { background: rgba(255, 255, 255, .16); }
+.icon-btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
+.tabpanel { animation: fade .3s var(--spring); }
+@keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* ---------- profile form (dark) ---------- */
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.grid2.money-row { grid-template-columns: 1fr 120px; }
+.field { margin-bottom: 12px; }
+.field > label, .field > .label { display: block; font-size: .76rem; font-weight: 600; color: var(--isl-muted); margin-bottom: 6px; letter-spacing: .01em; }
 .input {
-  width: 100%; height: 48px; padding: 0 14px; border-radius: var(--r-md); border: 1.5px solid transparent;
-  background: var(--field); font-size: 16px; outline: none; transition: border-color .15s, background .15s, box-shadow .15s;
+  width: 100%; height: 42px; padding: 0 12px; border-radius: var(--r-field); border: 1px solid var(--isl-line);
+  background: var(--isl-field); color: var(--isl-text); font-size: 16px; outline: none; transition: border-color .15s, background .15s, box-shadow .15s;
 }
-.input:hover { background: #EDF3FD; }
-.input:focus { border-color: var(--accent); background: #fff; box-shadow: 0 0 0 4px var(--accent-soft); }
-.money { position: relative; }
-.money .input { padding-left: 30px; }
+.input::placeholder { color: var(--isl-faint); }
+.input:hover { background: var(--isl-field-hover); }
+.input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-soft); }
 .unit { position: relative; }
-.unit .input { padding-right: 46px; }
-.unit::after { content: attr(data-unit); position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: var(--faint); font-size: .85rem; font-weight: 600; pointer-events: none; }
-.money::before { content: "$"; position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--muted); font-weight: 600; }
-.field.invalid .input { border-color: var(--error); background: var(--error-soft); }
-.err { display: none; margin-top: 6px; font-size: .82rem; font-weight: 600; color: var(--error); }
+.unit .input { padding-right: 44px; }
+.unit::after { content: attr(data-unit); position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--isl-faint); font-size: .8rem; font-weight: 600; pointer-events: none; }
+.money .input { padding-left: 26px; }
+.money::before { content: "$"; position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--isl-muted); font-weight: 600; }
+.field.invalid .input { border-color: var(--error); background: rgba(255, 143, 125, .08); }
+.err { display: none; margin-top: 5px; font-size: .78rem; font-weight: 600; color: var(--error); }
 .field.invalid .err { display: block; }
-.row2 { display: grid; grid-template-columns: 1fr 110px; gap: 12px; }
 
-.drop {
-  display: flex; align-items: center; gap: 12px; width: 100%; padding: 14px; border-radius: var(--r-md);
-  border: 1.5px dashed #B9CCF2; background: var(--field); cursor: pointer; text-align: left; transition: border-color .15s, background .15s;
+.upload {
+  width: 100%; height: 42px; display: flex; align-items: center; gap: 10px; padding: 0 12px; border-radius: var(--r-field);
+  border: 1px dashed rgba(255, 255, 255, .2); background: transparent; cursor: pointer; text-align: left; font-size: .88rem; transition: border-color .15s, background .15s;
 }
-.drop:hover, .drop.over { border-color: var(--accent); background: #EDF3FD; }
-.drop:focus-visible { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
-.drop-icon { flex: none; width: 38px; height: 38px; border-radius: 12px; background: #fff; display: grid; place-items: center; color: var(--accent); }
-.drop-text { display: flex; flex-direction: column; min-width: 0; }
-.drop-text b { font-size: .92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.drop-text span { font-size: .8rem; color: var(--muted); }
-.drop.has-file { border-style: solid; border-color: var(--line); background: #fff; }
-.parse-note { margin: 8px 0 0; font-size: .82rem; color: var(--muted); }
-.parse-note:empty { display: none; }
-.parse-note.warn { color: var(--you-text); }
+.upload:hover, .upload.over { border-color: var(--blue); background: var(--blue-soft); }
+.upload:focus-visible { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-soft); }
+.upload svg { color: var(--blue); flex: none; }
+.upload b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.upload span { color: var(--isl-faint); margin-left: auto; white-space: nowrap; font-size: .8rem; }
+.upload.has-file { border-style: solid; border-color: var(--isl-line); background: var(--isl-field); }
+.note { margin: 6px 0 0; font-size: .78rem; color: var(--isl-muted); }
+.note:empty { display: none; }
+.note.warn { color: var(--coral); }
 
-.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip {
-  display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 8px 0 12px; border-radius: var(--r-pill);
-  background: var(--accent-soft); color: var(--accent-2); font-weight: 600; font-size: .85rem; border: 0; cursor: pointer;
+  height: 30px; padding: 0 7px 0 11px; border: 0; border-radius: var(--r-pill); background: var(--blue-soft); color: #C9D8FF;
+  font-size: .8rem; font-weight: 600; display: inline-flex; align-items: center; gap: 5px; cursor: pointer;
 }
-.chip:hover { background: #D5E2FF; }
+.chip:hover { background: rgba(91, 140, 255, .28); }
+.chip:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
 .chip svg { opacity: .7; }
 .add-skill {
-  height: 34px; padding: 0 30px 0 12px; border-radius: var(--r-pill); border: 1.5px dashed #B9CCF2; background: transparent;
-  color: var(--muted); font-weight: 600; font-size: .85rem; cursor: pointer; appearance: none;
-  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
-  background-position: calc(100% - 15px) 15px, calc(100% - 10px) 15px; background-size: 5px 5px; background-repeat: no-repeat;
+  height: 30px; padding: 0 26px 0 11px; border-radius: var(--r-pill); border: 1px dashed rgba(255, 255, 255, .22); background-color: transparent;
+  color: var(--isl-muted); font-size: .8rem; font-weight: 600; cursor: pointer; appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 13px) 13px, calc(100% - 9px) 13px; background-size: 4px 4px; background-repeat: no-repeat;
 }
-.add-skill:focus-visible { outline: none; border-color: var(--accent); }
+.add-skill option { color: #111; }
+.add-skill:focus-visible { outline: none; border-color: var(--blue); }
 
-.cta {
-  width: 100%; height: 54px; margin-top: 8px; border: 0; border-radius: var(--r-pill); background: var(--accent); color: #fff;
-  font-weight: 700; font-size: 1.02rem; cursor: pointer; box-shadow: 0 14px 26px -14px rgba(47, 107, 255, .9);
-  transition: transform .15s var(--ease), box-shadow .15s, background .15s;
+.primary {
+  width: 100%; height: 46px; margin-top: 6px; border: 0; border-radius: var(--r-pill); background: #F5F4F0; color: #14151A;
+  font-weight: 700; font-size: .95rem; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  transition: transform .15s var(--spring), background .15s;
 }
-.cta:hover { background: var(--accent-2); transform: translateY(-1px); }
-.cta:active { transform: translateY(1px) scale(.99); }
-.cta:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3px; }
-.cta[disabled] { opacity: .75; cursor: progress; }
+.primary:hover { background: #fff; transform: translateY(-1px); }
+.primary:active { transform: translateY(1px) scale(.99); }
+.primary:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+.primary[disabled] { opacity: .7; cursor: progress; }
+.ghost-btn {
+  height: 36px; padding: 0 14px; border-radius: var(--r-pill); border: 1px solid var(--isl-line); background: rgba(255,255,255,.04);
+  color: var(--isl-text); font-size: .84rem; font-weight: 600; cursor: pointer;
+}
+.ghost-btn:hover { background: rgba(255, 255, 255, .1); }
+.ghost-btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
 
-/* ---------- range island (hero) ---------- */
-.verdict { margin: 0; font-size: clamp(1.7rem, 3.2vw, 2.35rem); font-weight: 800; letter-spacing: -.025em; line-height: 1.12; }
-.verdict em { font-style: normal; color: var(--you-text); }
-.context { margin: 10px 0 0; color: var(--muted); font-size: .98rem; line-height: 1.5; }
-.context b { color: var(--ink); }
-.link-btn { border: 0; background: none; padding: 0; color: var(--accent-2); font-weight: 700; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
-
-.chart { position: relative; margin: 64px 4px 0; }
-.track { position: relative; height: 26px; border-radius: var(--r-pill); background: var(--accent-soft); }
-.band { position: absolute; top: 0; bottom: 0; border-radius: var(--r-pill); background: linear-gradient(90deg, var(--band-edge), var(--accent) 45%, var(--accent) 55%, var(--band-edge)); }
-.mark-p50 { position: absolute; top: -6px; bottom: -6px; width: 4px; margin-left: -2px; border-radius: 2px; background: var(--ink); box-shadow: 0 0 0 2px #fff; }
-.mark-bls { position: absolute; top: -18px; bottom: -18px; width: 0; border-left: 2px dashed var(--bls); margin-left: -1px; }
-.bls-tag { position: absolute; top: 100%; margin-top: 2px; transform: translateX(-50%); font-size: .72rem; font-weight: 700; color: var(--bls); white-space: nowrap; }
-.you { position: absolute; bottom: 13px; width: 0; transition: left .8s var(--ease); }
+/* ---------- range tab ---------- */
+.verdict { margin: 4px 0 0; font-family: var(--font-display); font-size: 1.6rem; font-weight: 700; letter-spacing: -.02em; line-height: 1.15; }
+.verdict em { font-style: normal; color: var(--coral); }
+.context { margin: 6px 0 0; color: var(--isl-muted); font-size: .9rem; line-height: 1.45; }
+.context b { color: var(--isl-text); font-weight: 600; }
+.chart { position: relative; margin: 50px 6px 0; }
+.track { position: relative; height: 16px; border-radius: var(--r-pill); background: rgba(255, 255, 255, .08); }
+.band { position: absolute; top: 0; bottom: 0; border-radius: var(--r-pill); background: linear-gradient(90deg, var(--blue-deep), var(--blue) 50%, var(--blue-deep)); }
+.mark-p50 { position: absolute; top: -5px; bottom: -5px; width: 3px; margin-left: -1.5px; border-radius: 2px; background: #fff; }
+.mark-bls { position: absolute; top: -13px; bottom: -13px; width: 0; margin-left: -1px; border-left: 2px dashed var(--bls); }
+.bls-tag { position: absolute; top: 100%; margin-top: 2px; transform: translateX(-50%); font-size: .7rem; font-weight: 700; color: var(--bls); white-space: nowrap; }
+.you { position: absolute; bottom: 8px; width: 0; transition: left .8s var(--spring); }
 .you-pin { position: absolute; bottom: 0; left: 0; display: flex; flex-direction: column; align-items: center; transform: translateX(-50%); }
-.you-pin.edge-l { transform: translateX(-22px); align-items: flex-start; }
-.you-pin.edge-r { transform: translateX(calc(-100% + 22px)); align-items: flex-end; }
-.you-label { white-space: nowrap; background: var(--you); color: #fff; font-weight: 800; font-size: .9rem; padding: 6px 12px; border-radius: var(--r-pill); box-shadow: 0 10px 20px -10px rgba(255, 107, 74, .95); }
-.you-stem { width: 2px; height: 14px; background: var(--you); }
-.you-dot { width: 22px; height: 22px; border-radius: 50%; background: #fff; border: 6px solid var(--you); margin-bottom: -11px; box-shadow: 0 4px 10px -4px rgba(255,107,74,.8); }
-.edge-l .you-stem, .edge-l .you-dot { margin-left: 11px; } .edge-l .you-dot { margin-left: 1px; }
-.edge-r .you-stem, .edge-r .you-dot { margin-right: 11px; } .edge-r .you-dot { margin-right: 1px; }
-
-.ticks { position: relative; height: 46px; margin-top: 22px; }
-.tick .bls-note { font-size: .74rem; color: var(--bls); font-weight: 700; }
+.you-pin.edge-l { transform: translateX(-18px); align-items: flex-start; }
+.you-pin.edge-r { transform: translateX(calc(-100% + 18px)); align-items: flex-end; }
+.you-label { white-space: nowrap; background: var(--coral); color: #1A0D08; font-weight: 800; font-size: .8rem; padding: 4px 10px; border-radius: var(--r-pill); }
+.you-stem { width: 2px; height: 10px; background: var(--coral); }
+.you-dot { width: 16px; height: 16px; border-radius: 50%; background: #15161B; border: 4px solid var(--coral); margin-bottom: -8px; }
+.edge-l .you-stem { margin-left: 8px; } .edge-r .you-stem { margin-right: 8px; }
+.ticks { position: relative; height: 40px; margin-top: 18px; }
 .tick { position: absolute; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; white-space: nowrap; }
 .tick.l { transform: none; align-items: flex-start; } .tick.r { transform: translateX(-100%); align-items: flex-end; }
-.tick b { font-size: 1rem; }
-.tick span { font-size: .78rem; color: var(--muted); font-weight: 600; }
-.legend { margin: 22px 0 0; font-size: .85rem; color: var(--muted); }
-.legend i { display: inline-block; vertical-align: middle; margin-right: 8px; width: 22px; height: 10px; border-radius: 5px; background: var(--accent); }
+.tick b { font-size: .92rem; font-weight: 700; }
+.tick span { font-size: .72rem; color: var(--isl-muted); font-weight: 600; }
+.tick .bls-note { color: var(--bls); }
+.legend { margin: 14px 0 0; font-size: .76rem; color: var(--isl-faint); line-height: 1.45; }
+.actions { display: flex; gap: 8px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--isl-line); }
+.actions .ghost-btn:last-child { margin-left: auto; }
 
-/* ---------- skills island ---------- */
-.sub { margin: -14px 0 22px; color: var(--muted); font-size: .9rem; line-height: 1.5; }
-.recs { display: grid; grid-template-columns: max-content 1fr auto; align-items: center; gap: 14px 18px; }
-.rec { display: contents; }
-.rec-name { font-weight: 700; font-size: .95rem; }
-.rec-bar { height: 10px; border-radius: var(--r-pill); background: var(--mint-soft); overflow: hidden; }
-.rec-bar i { display: block; height: 100%; width: 0; border-radius: inherit; background: var(--mint); transition: width .7s var(--ease); }
-.rec-val { font-weight: 800; font-size: .95rem; color: var(--mint-text); text-align: right; min-width: 6.5rem; }
-.rec-val small { font-weight: 600; color: var(--muted); }
-.note { margin: 20px 0 0; font-size: .84rem; color: var(--muted); line-height: 1.5; }
+/* ---------- skills tab ---------- */
+.skills-head { margin: 2px 0 10px; font-size: .84rem; color: var(--isl-muted); line-height: 1.45; }
+.recs { list-style: none; margin: 0; padding: 0; }
+.rec { padding: 11px 0; border-top: 1px solid var(--isl-line); display: grid; grid-template-columns: 1fr auto; gap: 7px 12px; align-items: center; }
+.rec:first-child { border-top: 0; }
+.rec-name { font-weight: 600; font-size: .92rem; }
+.rec-val { font-weight: 700; font-size: .92rem; color: var(--mint); }
+.rec-val small { color: var(--isl-faint); font-weight: 600; }
+.rec-bar { grid-column: 1 / -1; height: 4px; border-radius: 2px; background: var(--mint-soft); overflow: hidden; }
+.rec-bar i { display: block; height: 100%; width: 0; border-radius: inherit; background: var(--mint); transition: width .7s var(--spring); }
+.basis { margin: 10px 0 0; font-size: .76rem; color: var(--isl-faint); }
 
-/* ---------- empty / error ---------- */
-.ghost .track { background: #EEF3FC; }
-.ghost .band { background: transparent; border: 2px dashed #A9C2F5; }
-.ghost .tick b { color: #B4C2D8; }
-.ghost .you-label { background: #fff; color: var(--you); border: 2px dashed var(--you); box-shadow: none; }
-.ghost .you-dot { border-width: 3px; box-shadow: none; }
-.ghost .you-stem { background: repeating-linear-gradient(var(--you) 0 3px, transparent 3px 6px); }
-.ghost-title { margin: 0; font-size: 1.55rem; font-weight: 800; letter-spacing: -.02em; }
-.state-msg { margin: 8px 0 0; color: var(--muted); }
-
-/* ---------- entrance + float ---------- */
-.rise { animation: rise .6s var(--ease) both; }
-.rise.d1 { animation-delay: .1s; }
-@keyframes rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
-.hover-float { animation: rise .6s var(--ease) both, bob 7s ease-in-out .6s infinite; }
-.hover-float::after { animation: shadow 7s ease-in-out .6s infinite; }
-@keyframes bob { 50% { transform: translateY(-5px); } }
-@keyframes shadow { 50% { transform: scale(.92); opacity: .75; } }
-
-[hidden] { display: none !important; }
+.empty { padding: 18px 0 6px; }
+.empty h2 { margin: 0; font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; }
+.empty p { margin: 6px 0 14px; color: var(--isl-muted); font-size: .9rem; line-height: 1.45; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
-
-/* ---------- narrow screens ---------- */
-@media (max-width: 920px) {
-  .layout { grid-template-columns: 1fr; gap: 56px; }
-  .form-island { position: relative; top: 0; margin-top: 0; }
-  .island.high { margin-top: 0; }
-  #results { scroll-margin-top: 16px; }
-}
-@media (max-width: 560px) {
-  .page { padding: 18px 16px 64px; }
-  .bar { margin-bottom: 24px; }
-  .scope { display: none; }
-  .island { padding: 22px 20px; border-radius: 26px; }
-  .chart { margin-top: 58px; }
-  .recs { grid-template-columns: 1fr; gap: 16px; }
-  .rec { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; align-items: center; }
-  .rec-bar { grid-column: 1 / -1; grid-row: 2; }
-  .rec-val { min-width: 0; }
+@media (max-width: 600px) {
+  .brand { display: none; }
+  .panel { padding: 12px 14px 16px; }
+  .tab { padding: 0 11px; }
+  .grid2 { grid-template-columns: 1fr; gap: 0; }
+  .grid2.money-row { grid-template-columns: 1fr 104px; gap: 10px; }
+  .hero { padding-bottom: 12vh; }
+  .pill-sub, .hero-cta kbd { display: none; }
 }
 </style>
 </head>
-<body>
+<body class="open">
 <div class="sky" aria-hidden="true">
   <div class="cloud far c1"></div><div class="cloud far c5"></div>
-  <div class="cloud mid c2"></div><div class="cloud mid c3"></div>
-  <div class="cloud near c4"></div>
+  <div class="cloud mid c2"></div><div class="cloud mid c3"></div><div class="cloud near c4"></div>
 </div>
 
-<div class="page">
-  <header class="bar">
-    <div class="logo" aria-hidden="true">$</div>
-    <div class="brand">Salary Advisor</div>
-    <div class="scope">Early-career software &amp; data roles</div>
-  </header>
+<div class="brand" aria-hidden="true"><span class="logo">$</span>Salary Advisor</div>
 
-  <div class="layout">
-    <form class="island form-island" id="form" novalidate>
-      <p class="eyebrow">Your profile</p>
-      <h1 class="h">Is your pay on target?</h1>
+<div class="island expanded" id="island">
+  <!-- collapsed face -->
+  <button class="face pill" id="pill" type="button" aria-expanded="true" aria-controls="panel" tabindex="-1">
+    <span class="pill-dot" id="pill-dot"></span>
+    <span id="pill-text">Check your pay</span>
+    <span class="pill-sub" id="pill-sub"></span>
+    <span class="glyph idle" id="glyph" aria-hidden="true"><i></i><b></b></span>
+  </button>
 
-      <div class="field" data-field="title">
-        <label for="title">Job title</label>
-        <input class="input" id="title" name="title" value="Data Scientist" autocomplete="organization-title">
-        <div class="err" id="title-err">Enter a job title</div>
+  <!-- expanded face -->
+  <section class="face panel" id="panel" aria-label="Salary Advisor">
+    <div class="panel-top">
+      <div class="tabs" role="tablist" aria-label="Sections">
+        <button class="tab" role="tab" id="tab-profile" aria-controls="tp-profile" aria-selected="true">Profile</button>
+        <button class="tab" role="tab" id="tab-range" aria-controls="tp-range" aria-selected="false" tabindex="-1">Range</button>
+        <button class="tab" role="tab" id="tab-skills" aria-controls="tp-skills" aria-selected="false" tabindex="-1">Skills <span class="badge" id="skills-badge" hidden></span></button>
       </div>
-
-      <div class="field" data-field="location">
-        <label for="location">Location</label>
-        <input class="input" id="location" name="location" value="San Jose, CA" placeholder="City, state">
-        <div class="err" id="location-err">Enter a city and state</div>
+      <div class="top-actions">
+        <button class="icon-btn" id="collapse" type="button" aria-label="Collapse to the top bar (Esc)" title="Collapse (Esc)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M5 12h14"/></svg>
+        </button>
       </div>
+    </div>
 
-      <div class="row2">
-        <div class="field" data-field="salary">
+    <!-- Profile -->
+    <form class="tabpanel" id="tp-profile" role="tabpanel" aria-labelledby="tab-profile" novalidate>
+      <div class="grid2">
+        <div class="field" data-field="title">
+          <label for="title">Job title</label>
+          <input class="input" id="title" value="Data Scientist">
+          <div class="err" id="title-err">Enter a job title</div>
+        </div>
+        <div class="field" data-field="location">
+          <label for="location">Location</label>
+          <input class="input" id="location" value="San Jose, CA" placeholder="City, state">
+          <div class="err" id="location-err">Enter a city and state</div>
+        </div>
+      </div>
+      <div class="grid2 money-row">
+        <div class="field">
           <label for="salary">Current or offered salary</label>
-          <div class="money unit" data-unit="/ yr"><input class="input" id="salary" name="salary" value="110,000" inputmode="numeric" placeholder="Optional"></div>
+          <div class="unit money" data-unit="/ yr"><input class="input" id="salary" value="110,000" inputmode="numeric" placeholder="Optional"></div>
         </div>
-        <div class="field" data-field="years">
+        <div class="field">
           <label for="years">Experience</label>
-          <div class="unit" data-unit="yrs"><input class="input" id="years" name="years" inputmode="numeric" placeholder="e.g. 2"></div>
+          <div class="unit" data-unit="yrs"><input class="input" id="years" inputmode="numeric" placeholder="e.g. 2"></div>
         </div>
       </div>
-
       <div class="field">
-        <span class="label">Resume <span class="opt">· optional</span></span>
-        <button type="button" class="drop" id="drop">
-          <span class="drop-icon" aria-hidden="true">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M6 10l6-6 6 6M4 20h16"/></svg>
-          </span>
-          <span class="drop-text"><b id="drop-name">Upload PDF, DOCX or TXT</b><span id="drop-hint">We pull out your skills and experience</span></span>
+        <span class="label">Resume · optional</span>
+        <button type="button" class="upload" id="upload">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M6 10l6-6 6 6M4 20h16"/></svg>
+          <b id="upload-name">Upload to fill your skills</b><span id="upload-hint">PDF, DOCX, TXT</span>
         </button>
         <input type="file" id="file" accept=".pdf,.docx,.txt" hidden>
-        <p class="parse-note" id="parse-note" aria-live="polite"></p>
+        <p class="note" id="note" aria-live="polite"></p>
       </div>
-
       <div class="field">
         <span class="label">Your skills</span>
         <div class="chips" id="chips"></div>
       </div>
-
-      <button class="cta" id="cta" type="submit">Estimate my range</button>
+      <button class="primary" id="cta" type="submit">Estimate my range</button>
     </form>
 
-    <main class="stack" id="results" aria-live="polite">
-    </main>
-  </div>
+    <!-- Range -->
+    <div class="tabpanel" id="tp-range" role="tabpanel" aria-labelledby="tab-range" hidden></div>
+    <!-- Skills -->
+    <div class="tabpanel" id="tp-skills" role="tabpanel" aria-labelledby="tab-skills" hidden></div>
+  </section>
 </div>
+
+<main class="hero">
+  <h1>Is your pay on target?</h1>
+  <p>Everything lives in the bar at the top: your profile, where your pay sits in the market range for your role and city, and the skills linked to higher pay.</p>
+  <button class="hero-cta" id="hero-cta" type="button">Open the advisor <kbd>/</kbd></button>
+</main>
 
 <script>
 "use strict";
@@ -312,189 +345,192 @@ const usd = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD",
 const money = (x) => usd.format(x);
 const short = (x) => (x >= 1000 ? `$${Math.round(x / 1000)}k` : money(x));
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const X_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+const digits = (s) => s.replace(/[^\d]/g, "");
+const X_ICON = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
 
-const state = { all: [], labels: {}, skills: [] };
+const island = $("#island"), pill = $("#pill"), panel = $("#panel");
+const state = { all: [], labels: {}, skills: [], result: null, profile: null, tab: "profile" };
 
-/* ---------- skills chips ---------- */
+/* ================= island: size, expand, collapse ================= */
+function fit() {
+  const face = island.classList.contains("expanded") ? panel : pill;
+  island.style.width = face.offsetWidth + "px";
+  island.style.height = face.offsetHeight + "px";
+}
+new ResizeObserver(fit).observe(panel);
+new ResizeObserver(fit).observe(pill);
+window.addEventListener("resize", fit);
+
+function expand(tab) {
+  island.classList.add("expanded"); document.body.classList.add("open");
+  pill.setAttribute("aria-expanded", "true"); pill.tabIndex = -1;
+  panel.inert = false;
+  if (tab) selectTab(tab, false);
+  fit();
+  setTimeout(() => (document.querySelector(`#tab-${state.tab}`)).focus({ preventScroll: true }), 60);
+}
+function collapse() {
+  island.classList.remove("expanded"); document.body.classList.remove("open");
+  pill.setAttribute("aria-expanded", "false"); pill.tabIndex = 0;
+  panel.inert = true;
+  fit();
+}
+pill.addEventListener("click", () => expand());
+$("#collapse").addEventListener("click", () => { collapse(); pill.focus(); });
+$("#hero-cta").addEventListener("click", () => expand());
+document.addEventListener("keydown", (e) => {
+  const typing = /INPUT|SELECT|TEXTAREA/.test(document.activeElement?.tagName);
+  if (e.key === "Escape" && island.classList.contains("expanded")) { collapse(); pill.focus(); }
+  else if (e.key === "/" && !typing && !island.classList.contains("expanded")) { e.preventDefault(); expand(); }
+});
+document.addEventListener("pointerdown", (e) => {
+  if (island.classList.contains("expanded") && !island.contains(e.target) && !e.target.closest("#hero-cta")) collapse();
+});
+
+/* ================= tabs ================= */
+const TABS = ["profile", "range", "skills"];
+function selectTab(name, focus = true) {
+  state.tab = name;
+  TABS.forEach((t) => {
+    const on = t === name, tab = $(`#tab-${t}`);
+    tab.setAttribute("aria-selected", on); tab.tabIndex = on ? 0 : -1;
+    $(`#tp-${t}`).hidden = !on;
+  });
+  if (focus) $(`#tab-${name}`).focus();
+  fit();
+}
+TABS.forEach((t) => $(`#tab-${t}`).addEventListener("click", () => selectTab(t)));
+$(".tabs").addEventListener("keydown", (e) => {
+  const i = TABS.indexOf(state.tab);
+  if (e.key === "ArrowRight") selectTab(TABS[(i + 1) % 3]);
+  if (e.key === "ArrowLeft") selectTab(TABS[(i + 2) % 3]);
+});
+
+/* ================= collapsed status line ================= */
+function setPill({ text, sub = "", dot = "", glyphAt = null }) {
+  $("#pill-text").textContent = text;
+  $("#pill-sub").textContent = sub;
+  $("#pill-dot").className = "pill-dot " + dot;
+  const g = $("#glyph");
+  g.classList.toggle("idle", glyphAt == null);
+  if (glyphAt != null) g.querySelector("b").style.left = glyphAt + "%";
+}
+
+/* ================= profile: skills, formatting, resume ================= */
 function renderChips() {
   const chips = state.skills.map((k) =>
     `<button type="button" class="chip" data-skill="${k}" aria-label="Remove ${esc(state.labels[k])}">${esc(state.labels[k])}${X_ICON}</button>`).join("");
   const left = state.all.filter((s) => !state.skills.includes(s.key));
-  const add = left.length
-    ? `<select class="add-skill" id="add-skill" aria-label="Add a skill"><option value="">+ Add skill</option>${
-        left.map((s) => `<option value="${s.key}">${esc(s.label)}</option>`).join("")}</select>`
-    : "";
+  const add = left.length ? `<select class="add-skill" id="add-skill" aria-label="Add a skill"><option value="">+ Add skill</option>${
+    left.map((s) => `<option value="${s.key}">${esc(s.label)}</option>`).join("")}</select>` : "";
   $("#chips").innerHTML = chips + add;
 }
 $("#chips").addEventListener("click", (e) => {
-  const chip = e.target.closest(".chip");
-  if (chip) { state.skills = state.skills.filter((k) => k !== chip.dataset.skill); renderChips(); $("#add-skill")?.focus(); }
+  const c = e.target.closest(".chip");
+  if (c) { state.skills = state.skills.filter((k) => k !== c.dataset.skill); renderChips(); $("#add-skill")?.focus(); }
 });
 $("#chips").addEventListener("change", (e) => {
   if (e.target.id === "add-skill" && e.target.value) { state.skills.push(e.target.value); renderChips(); $("#add-skill")?.focus(); }
 });
-
-/* ---------- salary + years formatting ---------- */
-const digits = (s) => s.replace(/[^\d]/g, "");
-$("#salary").addEventListener("input", (e) => {
-  const d = digits(e.target.value).slice(0, 7);
-  e.target.value = d ? Number(d).toLocaleString("en-US") : "";
-});
+$("#salary").addEventListener("input", (e) => { const d = digits(e.target.value).slice(0, 7); e.target.value = d ? Number(d).toLocaleString("en-US") : ""; });
 $("#years").addEventListener("input", (e) => { e.target.value = digits(e.target.value).slice(0, 2); });
 
-/* ---------- resume upload ---------- */
-const drop = $("#drop"), file = $("#file"), note = $("#parse-note");
-drop.addEventListener("click", () => file.click());
-["dragenter", "dragover"].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add("over"); }));
-["dragleave", "drop"].forEach((t) => drop.addEventListener(t, () => drop.classList.remove("over")));
-drop.addEventListener("drop", (e) => { e.preventDefault(); if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+const upload = $("#upload"), file = $("#file"), note = $("#note");
+upload.addEventListener("click", () => file.click());
+["dragenter", "dragover"].forEach((t) => upload.addEventListener(t, (e) => { e.preventDefault(); upload.classList.add("over"); }));
+["dragleave", "drop"].forEach((t) => upload.addEventListener(t, () => upload.classList.remove("over")));
+upload.addEventListener("drop", (e) => { e.preventDefault(); e.dataTransfer.files[0] && handleFile(e.dataTransfer.files[0]); });
 file.addEventListener("change", () => file.files[0] && handleFile(file.files[0]));
+function setNote(t, warn = false) { note.textContent = t; note.classList.toggle("warn", warn); fit(); }
 
 async function handleFile(f) {
   if (!/\.(pdf|docx|txt)$/i.test(f.name)) return setNote("Use a PDF, DOCX or TXT file.", true);
   if (f.size > 10 * 1024 * 1024) return setNote("This file is over 10 MB. Try a smaller copy.", true);
-  $("#drop-name").textContent = f.name;
-  $("#drop-hint").textContent = "Reading your resume…";
-  drop.classList.add("has-file");
+  $("#upload-name").textContent = f.name; $("#upload-hint").textContent = "Reading…"; upload.classList.add("has-file");
   try {
-    const data = await new Promise((ok, bad) => {
-      const r = new FileReader();
-      r.onload = () => ok(String(r.result).split(",")[1] || ""); r.onerror = bad; r.readAsDataURL(f);
-    });
+    const data = await new Promise((ok, bad) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1] || ""); r.onerror = bad; r.readAsDataURL(f); });
     const res = await fetch("/api/parse-resume", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: f.name, data }) });
     const out = await res.json();
     if (!res.ok) throw new Error(out.error);
-    state.skills = [...new Set([...state.skills, ...out.skills])];
-    renderChips();
+    state.skills = [...new Set([...state.skills, ...out.skills])]; renderChips();
     if (out.years != null) $("#years").value = Math.round(out.years);
-    $("#drop-hint").textContent = "Click to replace";
+    $("#upload-hint").textContent = "Replace";
     if (!out.skills.length && out.years == null) setNote("No skills found. If it's a scanned PDF, try a DOCX or add skills below.", true);
-    else setNote(`Found ${out.skills.length} skill${out.skills.length === 1 ? "" : "s"}${out.years != null ? ` and ${out.years} years of experience` : ""}. Edit them below if anything is off.`);
-  } catch (err) {
-    $("#drop-hint").textContent = "Click to try another file";
-    setNote("We couldn't read this file. Try another PDF, DOCX or TXT, or add skills below.", true);
+    else setNote(`Found ${out.skills.length} skill${out.skills.length === 1 ? "" : "s"}${out.years != null ? ` and ${out.years} years of experience` : ""}. Edit below if anything is off.`);
+  } catch {
+    $("#upload-hint").textContent = "Try another"; setNote("We couldn't read this file. Try another PDF, DOCX or TXT, or add skills below.", true);
   }
 }
-function setNote(text, warn = false) { note.textContent = text; note.classList.toggle("warn", warn); }
 
-/* ---------- validation ---------- */
 function setInvalid(field, msg) {
-  const el = document.querySelector(`[data-field="${field}"]`);
-  if (!el) return;
+  const el = document.querySelector(`[data-field="${field}"]`); if (!el) return;
   el.classList.toggle("invalid", !!msg);
-  const input = el.querySelector("input");
-  input.setAttribute("aria-invalid", msg ? "true" : "false");
-  const err = el.querySelector(".err");
-  if (err && msg) { err.textContent = msg; input.setAttribute("aria-describedby", err.id); }
+  const input = el.querySelector("input"); input.setAttribute("aria-invalid", msg ? "true" : "false");
+  const err = el.querySelector(".err"); if (msg) { err.textContent = msg; input.setAttribute("aria-describedby", err.id); }
+  fit();
 }
 ["title", "location"].forEach((f) => $("#" + f).addEventListener("input", () => setInvalid(f, "")));
 
-/* ---------- results ---------- */
+/* ================= results ================= */
 const pct = (x, lo, hi) => Math.min(Math.max(((x - lo) / (hi - lo)) * 100, 0), 100);
-
-function verdictText(cur, r) {
+function scale(r, cur) {
+  const v = [r.p10, r.p90, r.bls_median].concat(cur ? [cur] : []);
+  let lo = Math.min(...v), hi = Math.max(...v); const pad = (hi - lo) * 0.08 || hi * 0.1;
+  return [lo - pad, hi + pad];
+}
+function verdict(cur, r) {
   const gap = cur - r.p50;
-  if (cur < r.p10) return `You're <em>below the market range</em>`;
-  if (cur > r.p90) return `You're <em>above the market range</em>`;
-  if (Math.abs(gap) < 500) return `You're <em>right at typical pay</em>`;
-  return `You're <em>${money(Math.abs(gap))} ${gap < 0 ? "below" : "above"}</em> typical`;
+  if (cur < r.p10) return { long: `You're <em>below the market range</em>`, short: "Below the market range" };
+  if (cur > r.p90) return { long: `You're <em>above the market range</em>`, short: "Above the market range" };
+  if (Math.abs(gap) < 500) return { long: `You're <em>right at typical pay</em>`, short: "Right at typical pay" };
+  const side = gap < 0 ? "below" : "above";
+  return { long: `You're <em>${money(Math.abs(gap))} ${side}</em> typical`, short: `${short(Math.abs(gap))} ${side} typical` };
 }
 
-function rangeIsland(p, r) {
-  const cur = p.salary;
-  const vals = [r.p10, r.p90, r.bls_median].concat(cur ? [cur] : []);
-  let lo = Math.min(...vals), hi = Math.max(...vals);
-  const pad = (hi - lo) * 0.08 || hi * 0.1; lo -= pad; hi += pad;
+function emptyTab(title, body) {
+  return `<div class="empty"><h2>${title}</h2><p>${body}</p><button type="button" class="ghost-btn" data-go="profile">Go to profile</button></div>`;
+}
+
+function renderRange(p, r) {
+  const cur = p.salary, [lo, hi] = scale(r, cur);
   const x = { p10: pct(r.p10, lo, hi), p50: pct(r.p50, lo, hi), p90: pct(r.p90, lo, hi), bls: pct(r.bls_median, lo, hi) };
   const same = Math.abs(r.bls_median - r.p50) / r.p50 < 0.01;
   const where = `<b>${esc(p.title)}</b> in <b>${esc(p.location)}</b>`;
-
   const head = cur
-    ? `<h2 class="verdict">${verdictText(cur, r)}</h2>
-       <p class="context">Typical pay for ${where}: <b>${money(r.p50)}</b> a year.</p>`
-    : `<h2 class="verdict">Typical pay is ${money(r.p50)}</h2>
-       <p class="context">For ${where}. <button type="button" class="link-btn" id="add-salary">Add your salary</button> to see where you stand.</p>`;
-
+    ? `<h2 class="verdict">${verdict(cur, r).long}</h2><p class="context">Typical pay for ${where}: <b>${money(r.p50)}</b> a year.</p>`
+    : `<h2 class="verdict">Typical pay is ${money(r.p50)}</h2><p class="context">For ${where}. <button type="button" class="ghost-btn" data-go="profile" style="height:28px;margin-left:4px">Add your salary</button></p>`;
   let you = "";
   if (cur) {
-    const xy = pct(cur, lo, hi);
-    const edge = xy < 10 ? " edge-l" : xy > 90 ? " edge-r" : "";
-    you = `<div class="you" data-x="${xy.toFixed(2)}" style="left:${x.p10.toFixed(2)}%">
-             <div class="you-pin${edge}"><span class="you-label">You · ${short(cur)}</span><span class="you-stem"></span><span class="you-dot"></span></div></div>`;
+    const xy = pct(cur, lo, hi), edge = xy < 10 ? " edge-l" : xy > 90 ? " edge-r" : "";
+    you = `<div class="you" data-x="${xy.toFixed(2)}" style="left:${x.p10.toFixed(2)}%"><div class="you-pin${edge}"><span class="you-label">You · ${short(cur)}</span><span class="you-stem"></span><span class="you-dot"></span></div></div>`;
   }
-  // BLS baseline is always drawn on the bar; when it equals P50 the P50 label says so.
-  const bls = `<div class="mark-bls" style="left:${x.bls.toFixed(2)}%">${
-    same ? "" : `<span class="bls-tag">BLS ${short(r.bls_median)}</span>`}</div>`;
-  const p50Note = same ? `<span class="bls-note">= BLS median</span>` : "";
-
-  return `<section class="island high hover-float">
-    <p class="eyebrow">Where you stand</p>
-    ${head}
+  return `${head}
     <div class="chart" role="img" aria-label="Market range ${money(r.p10)} to ${money(r.p90)}, typical ${money(r.p50)}${cur ? `, you ${money(cur)}` : ""}, BLS median ${money(r.bls_median)}">
       <div class="track">
         <div class="band" style="left:${x.p10.toFixed(2)}%;width:${(x.p90 - x.p10).toFixed(2)}%"></div>
-        ${bls}
+        <div class="mark-bls" style="left:${x.bls.toFixed(2)}%">${same ? "" : `<span class="bls-tag">BLS ${short(r.bls_median)}</span>`}</div>
         <div class="mark-p50" style="left:${x.p50.toFixed(2)}%"></div>
         ${you}
       </div>
       <div class="ticks">
         <div class="tick${x.p10 < 8 ? " l" : ""}" style="left:${x.p10.toFixed(2)}%"><b>${short(r.p10)}</b><span>Low · P10</span></div>
-        <div class="tick" style="left:${x.p50.toFixed(2)}%"><b>${short(r.p50)}</b><span>Typical · P50</span>${p50Note}</div>
+        <div class="tick" style="left:${x.p50.toFixed(2)}%"><b>${short(r.p50)}</b><span>Typical · P50</span>${same ? '<span class="bls-note">= BLS median</span>' : ""}</div>
         <div class="tick${x.p90 > 92 ? " r" : ""}" style="left:${x.p90.toFixed(2)}%"><b>${short(r.p90)}</b><span>High · P90</span></div>
       </div>
-      <p class="legend"><i></i>Blue bar: the middle 80% of pay for similar roles. Dashed line: BLS median wage for this occupation and area.</p>
     </div>
-  </section>`;
+    <p class="legend">Blue bar: the middle 80% of pay for similar roles. Dashed line: BLS median wage for this occupation and area.</p>
+    <div class="actions"><button type="button" class="ghost-btn" data-go="profile">Edit profile</button><button type="button" class="ghost-btn" data-go="skills">Skills linked to higher pay →</button></div>`;
 }
 
-function skillsIsland(p, recs) {
-  const n = p.skills.length;
-  const basis = n
-    ? `Based on your ${n} skill${n === 1 ? "" : "s"}${p.years != null ? ` and ${p.years} years of experience` : ""}.`
-    : "You haven't listed any skills, so every skill counts as missing. Add yours for sharper advice.";
-  if (!recs.length) return `<section class="island rise d1"><p class="eyebrow">Next steps</p><h2 class="h">You already list every skill we track</h2></section>`;
-  const top = Math.max(...recs.map((r) => r.delta)) || 1;
-  const rows = recs.map((r) => `<div class="rec"><span class="rec-name">${esc(r.label)}</span>
-      <span class="rec-bar"><i data-w="${Math.max(r.delta / top, 0.04) * 100}"></i></span>
-      <span class="rec-val">+${money(r.delta)} <small>/ yr</small></span></div>`).join("");
-  return `<section class="island rise d1">
-    <p class="eyebrow">Next steps</p>
-    <h2 class="h">Skills linked to higher pay</h2>
-    <p class="sub">Associated change in typical pay if the skill were on your profile. Not a guaranteed raise.</p>
-    <div class="recs">${rows}</div>
-    <p class="note">${basis}</p>
-  </section>`;
-}
-
-/* First visit: the hero at full size, with a dashed ghost range and a ghost You pin at the typed salary. */
-function previewIsland() {
-  const cur = Number(digits($("#salary").value)) || null;
-  const pin = cur
-    ? `<div class="you" style="left:40%"><div class="you-pin"><span class="you-label">You · ${short(cur)}</span><span class="you-stem"></span><span class="you-dot"></span></div></div>`
-    : "";
-  return `<section class="island high" id="preview">
-    <p class="eyebrow">Where you stand</p>
-    <h2 class="verdict">${cur ? `See where <em>${money(cur)}</em> lands` : "See where your pay lands"}</h2>
-    <p class="context">Fill in your profile, then select <b>Estimate my range</b>. Your pay is placed on the market range for the role and city.</p>
-    <div class="chart ghost" aria-hidden="true">
-      <div class="track"><div class="band" style="left:18%;width:64%"></div>${pin}</div>
-      <div class="ticks">
-        <div class="tick" style="left:18%"><b>$—</b><span>Low · P10</span></div>
-        <div class="tick" style="left:50%"><b>$—</b><span>Typical · P50</span></div>
-        <div class="tick" style="left:82%"><b>$—</b><span>High · P90</span></div>
-      </div>
-    </div>
-  </section>`;
-}
-let estimated = false;
-const showPreview = () => { if (!estimated) $("#results").innerHTML = previewIsland(); };
-$("#salary").addEventListener("input", showPreview);
-showPreview();
-
-function messageIsland(title, body) {
-  return `<section class="island high rise"><p class="eyebrow">Where you stand</p>
-    <p class="ghost-title">${esc(title)}</p><p class="state-msg">${esc(body)}</p></section>`;
+function renderSkills(p, recs) {
+  if (!recs.length) return `<div class="empty"><h2>You list every skill we track</h2><p>There's nothing missing from our skill list.</p></div>`;
+  const top = Math.max(...recs.map((r) => r.delta)) || 1, n = p.skills.length;
+  const rows = recs.map((r) => `<li class="rec"><span class="rec-name">${esc(r.label)}</span><span class="rec-val">+${money(r.delta)} <small>/ yr</small></span>
+      <span class="rec-bar"><i data-w="${Math.max(r.delta / top, 0.04) * 100}"></i></span></li>`).join("");
+  const basis = n ? `Based on your ${n} skill${n === 1 ? "" : "s"}${p.years != null ? ` and ${p.years} years of experience` : ""}.`
+                  : "You haven't listed skills, so every skill counts as missing. Add yours in Profile for sharper advice.";
+  return `<p class="skills-head">Associated change in typical pay if the skill were on your profile. Not a guaranteed raise.</p>
+    <ul class="recs">${rows}</ul><p class="basis">${basis}</p>`;
 }
 
 function animateIn(root) {
@@ -503,16 +539,26 @@ function animateIn(root) {
     root.querySelectorAll(".rec-bar i").forEach((el) => (el.style.width = el.dataset.w + "%"));
   }));
 }
+panel.addEventListener("click", (e) => {
+  const go = e.target.closest("[data-go]")?.dataset.go;
+  if (!go) return;
+  selectTab(go);
+  if (go === "profile" && e.target.textContent.includes("salary")) $("#salary").focus();
+});
+$("#tab-skills").addEventListener("click", () => animateIn($("#tp-skills")));
 
-/* ---------- submit ---------- */
-$("#form").addEventListener("submit", async (e) => {
+function showEmptyResults() {
+  $("#tp-range").innerHTML = emptyTab("No estimate yet", "Fill in your profile and select Estimate my range. Your pay is placed on the market range for the role and city.");
+  $("#tp-skills").innerHTML = emptyTab("No estimate yet", "Estimate your range first, then see which skills are linked to higher pay in similar roles.");
+}
+
+/* ================= submit ================= */
+$("#tp-profile").addEventListener("submit", async (e) => {
   e.preventDefault();
   const p = {
-    title: $("#title").value.trim(),
-    location: $("#location").value.trim(),
+    title: $("#title").value.trim(), location: $("#location").value.trim(),
     salary: Number(digits($("#salary").value)) || null,
-    years: $("#years").value === "" ? null : Number($("#years").value),
-    skills: [...state.skills],
+    years: $("#years").value === "" ? null : Number($("#years").value), skills: [...state.skills],
   };
   const errors = {};
   if (!p.title) errors.title = "Enter a job title";
@@ -521,32 +567,39 @@ $("#form").addEventListener("submit", async (e) => {
   if (Object.keys(errors).length) { $("#" + Object.keys(errors)[0]).focus(); return; }
 
   const cta = $("#cta"); cta.disabled = true; cta.textContent = "Estimating…";
-  const results = $("#results");
+  setPill({ text: "Estimating…", dot: "busy" });
   try {
     const res = await fetch("/api/estimate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(p) });
     const out = await res.json();
-    if (res.status === 422 && out.errors) {
-      Object.entries(out.errors).forEach(([f, m]) => setInvalid(f, m));
-      return;
-    }
+    if (res.status === 422 && out.errors) { Object.entries(out.errors).forEach(([f, m]) => setInvalid(f, m)); setPill({ text: "Check your pay" }); return; }
     if (!res.ok) throw new Error(out.error);
-    estimated = true;
-    results.innerHTML = rangeIsland(p, out.range) + skillsIsland(p, out.recommendations);
-    animateIn(results);
-    $("#add-salary")?.addEventListener("click", () => $("#salary").focus());
-  } catch (err) {
-    results.innerHTML = messageIsland("We couldn't estimate this role",
-      "Try a more common job title, such as Software Engineer or Data Analyst, or a nearby large city.");
+    const r = out.range;
+    $("#tp-range").innerHTML = renderRange(p, r);
+    $("#tp-skills").innerHTML = renderSkills(p, out.recommendations);
+    const sb = $("#skills-badge"); sb.hidden = !out.recommendations.length; sb.textContent = out.recommendations.length;
+    if (p.salary) {
+      const [lo, hi] = scale(r, p.salary);
+      setPill({ text: `You're ${verdict(p.salary, r).short}`, sub: `· ${p.title}`, dot: "is-you", glyphAt: pct(p.salary, lo, hi) });
+    } else {
+      setPill({ text: `Typical pay ${short(r.p50)}`, sub: `· ${p.title}` });
+    }
+    selectTab("range", false);
+    animateIn($("#tp-range"));
+  } catch {
+    $("#tp-range").innerHTML = emptyTab("We couldn't estimate this role", "Try a more common job title, such as Software Engineer or Data Analyst, or a nearby large city.");
+    setPill({ text: "Couldn't estimate", sub: "· open to edit" });
+    selectTab("range", false);
   } finally {
     cta.disabled = false; cta.textContent = "Estimate my range";
-    if (window.matchMedia("(max-width: 920px)").matches) results.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 });
 
-/* ---------- start ---------- */
+/* ================= start ================= */
+showEmptyResults();
+fit();
 fetch("/api/skills").then((r) => r.json()).then((all) => {
-  state.all = all; all.forEach((s) => (state.labels[s.key] = s.label)); renderChips();
-}).catch(() => { $("#chips").innerHTML = '<p class="parse-note warn">Can\'t reach the server. Is <code>python -m src.app.server</code> running?</p>'; });
+  state.all = all; all.forEach((s) => (state.labels[s.key] = s.label)); renderChips(); fit();
+}).catch(() => { $("#chips").innerHTML = '<p class="note warn">Can\'t reach the server. Is <code>python -m src.app.server</code> running?</p>'; fit(); });
 </script>
 </body>
 </html>
