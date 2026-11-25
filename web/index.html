@@ -245,17 +245,21 @@ kbd { font-family: inherit; font-size: .78rem; padding: 2px 7px; border-radius: 
 .day[aria-pressed="true"] { animation: checkpop .4s var(--spring); }
 
 /* ---------- narrow screens: wrap widgets ---------- */
-@media (max-width: 1200px) {
-  .widgets { flex-wrap: wrap; gap: 6px 0; }
-  .sep { display: none; }
-  .w-hero { flex: 1 1 100%; }
-  .w-profile, .w-big { flex: 1 1 45%; }
-  .w-skills { flex: 0 0 132px; } .w-todo { flex: 1 1 50%; } .w-resume { flex: 1 1 30%; flex-direction: row; justify-content: flex-start; }
+/* Narrow browser windows only (the desktop app's window is exactly as wide as the bar, so it is excluded). */
+.panel { max-height: calc(100vh - 8px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+@media (max-width: 1215px) {
+  html:not(.desktop) .widgets { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; }
+  html:not(.desktop) .sep { display: none; }
+  html:not(.desktop) .w-hero, html:not(.desktop) .w-resume { grid-column: 1 / -1; }
+  html:not(.desktop) .w-resume { flex-direction: row; justify-content: flex-start; gap: 12px; padding: 8px 12px; }
+  html:not(.desktop) .w-resume .doc { width: 34px; height: 34px; }
+  html:not(.desktop) .scrub { margin-top: 12px; }
+  html:not(.desktop) .w-big { align-items: flex-start; text-align: left; }
 }
-@media (max-width: 560px) {
+@media (max-width: 640px) {
+  html:not(.desktop) .widgets { grid-template-columns: 1fr; }
   .panel { padding: 8px 10px 14px; }
-  .w-hero { gap: 12px; } .art { width: 104px; height: 104px; } .art b { font-size: 1.7rem; }
-  .w-profile, .w-big, .w-todo { flex: 1 1 100%; }
+  .w-hero { gap: 12px; } .art { width: 104px; height: 104px; padding: 10px; } .art b { font-size: 1.4rem; }
   .pill-sub, .hero-cta kbd { display: none; }
 }
 
@@ -267,7 +271,7 @@ html.desktop .island {
   background: var(--isl-bg); -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none; transition: none;
 }
 html.desktop .island.expanded { box-shadow: none; border-radius: 0; }
-html.desktop .panel { width: var(--panel-w); }
+html.desktop .panel { width: var(--panel-w); max-height: none; overflow: visible; }
 html.desktop .island.expanded > .pill, html.desktop .island:not(.expanded) > .panel { display: none; }
 html.desktop .pill-sub { display: inline; }
 
