@@ -567,6 +567,63 @@ $("#salary").addEventListener("input", (e) => {
 $("#title").addEventListener("input", (e) => { state.title = e.target.value; estimateSoon(450); });
 $("#location").addEventListener("input", (e) => { state.location = e.target.value; estimateSoon(450); });
 
+/* ================= interactions ================= */
+function setSalary(v) {
+  state.salary = v > 0 ? Math.min(v, 9_999_999) : null;
+  $("#salary").value = state.salary ? state.salary.toLocaleString("en-US") : "";
+  estimateSoon(120);
+}
+$("#minus").addEventListener("click", () => setSalary((state.salary || 0) - 5000));
+$("#plus").addEventListener("click", () => setSalary((state.salary || 0) + 5000));
+
+$("#days").addEventListener("click", (e) => {
+  const d = e.target.closest(".day"); if (!d) return;
+  const y = Number(d.dataset.y);
+  state.years = state.years === y ? null : y;  // click again to clear
+  renderDays(); estimateSoon(0);
+  $(`.day[data-y="${y}"]`).focus();
+});
+
+$("#tiles").addEventListener("click", (e) => {
+  const t = e.target.closest(".tile[data-skill]"); if (!t) return;
+  state.skills = state.skills.filter((k) => k !== t.dataset.skill);
+  renderTiles(); estimateSoon(0);
+  ($("#tiles .tile[data-skill]") || $("#add-skill"))?.focus();
+});
+$("#tiles").addEventListener("change", (e) => {
+  if (e.target.id !== "add-skill" || !e.target.value) return;
+  state.skills.push(e.target.value); renderTiles(); estimateSoon(0); $("#add-skill")?.focus();
+});
+
+$("#todo").addEventListener("click", (e) => {
+  const btn = e.target.closest(".check"); if (!btn) return;
+  const li = btn.closest("li"), key = li.dataset.skill;
+  if (li.classList.contains("done")) return;
+  li.classList.add("done");                       // strike through first, then the list refreshes
+  if (!state.skills.includes(key)) state.skills.push(key);
+  setStatus(`Added ${state.labels[key]}`);
+  setTimeout(() => { renderTiles(); estimate(); }, 650);
+});
+
+function stepFigure(d) { fig = (fig + d + FIGURES.length) % FIGURES.length; renderFigure(); }
+$("#prev").addEventListener("click", () => stepFigure(-1));
+$("#next").addEventListener("click", () => stepFigure(1));
+let auto = 0;
+const PLAY = '<path d="M8 5v14l11-7z"/>', PAUSE = '<path d="M7 5h4v14H7zM13 5h4v14h-4z"/>';
+$("#play").addEventListener("click", () => {
+  const on = !auto;
+  $("#play").setAttribute("aria-pressed", on);
+  $("#play-ico").innerHTML = on ? PAUSE : PLAY;
+  if (on) { stepFigure(1); auto = setInterval(() => stepFigure(1), 2600); } else { clearInterval(auto); auto = 0; }
+});
+
+$("#reset").addEventListener("click", () => {
+  Object.assign(state, structuredClone(DEFAULTS));
+  $("#title").value = state.title; $("#location").value = state.location;
+  $("#salary").value = state.salary.toLocaleString("en-US"); $("#upload-name").textContent = "PDF, DOCX, TXT";
+  fig = 0; renderDays(); renderTiles(); estimate(); setStatus("Reset to the example profile");
+});
+
 /* ================= resume ================= */
 const upload = $("#upload"), file = $("#file");
 upload.addEventListener("click", () => { picking = true; file.click(); });
