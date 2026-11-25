@@ -41,8 +41,25 @@ make train      # quantile models
 make evaluate   # MAE (log wage), pinball loss, 80% interval coverage
 make app        # launch Streamlit app
 make web        # launch the dedicated web frontend at http://localhost:8600
+make desktop    # launch the desktop notch app (Windows; see below)
 make test       # interface + offline end-to-end pipeline tests
 ```
+
+## Desktop app (Windows 10/11)
+
+The same notch UI as `web/index.html`, as a small dark island docked to the top centre of your screen.
+
+```bash
+pip install -r requirements-desktop.txt   # pywebview (+ pyinstaller for building the .exe)
+python -m src.desktop                     # run it
+python -m src.desktop.build               # build dist/SalaryAdvisor/SalaryAdvisor.exe (~75 MB folder)
+```
+
+- Click the pill or press **Ctrl+Alt+S** (from any app) to open it; **Esc**, the **–** button or clicking into another app collapses it.
+- Tray icon: double-click to open, right-click for **Quit**. It has no taskbar button.
+- Uses the same `predict()` / `recommend()` as the other front ends (via `src/app/server.py: dispatch`).
+- When real models land, add their files to `DATAS` in `src/desktop/build.py`. If they need PyTorch
+  (SBERT), the bundle grows to well over 1 GB; consider shipping model files next to the .exe.
 
 ## Repository layout
 
