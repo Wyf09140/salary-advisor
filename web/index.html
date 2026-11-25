@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Salary Advisor</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%2310213A'/%3E%3Ctext x='16' y='22' font-family='Arial' font-weight='700' font-size='18' fill='white' text-anchor='middle'%3E$%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -25,13 +26,11 @@
   --ease: cubic-bezier(.2, .8, .2, 1);
 }
 * { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; }
-body {
-  margin: 0; min-height: 100vh; font-family: var(--font); color: var(--ink);
-  background: linear-gradient(180deg, var(--sky-1) 0%, var(--sky-2) 38%, var(--sky-3) 80%);
-  background-attachment: fixed;
-  font-variant-numeric: tabular-nums;
+html {
+  -webkit-text-size-adjust: 100%; min-height: 100%; background-color: var(--sky-3);
+  background-image: linear-gradient(180deg, var(--sky-1) 0, var(--sky-2) 360px, var(--sky-3) 900px);
 }
+body { margin: 0; font-family: var(--font); color: var(--ink); font-variant-numeric: tabular-nums; }
 button, input, select { font: inherit; color: inherit; }
 
 /* ---------- sky: drifting clouds far below the islands ---------- */
@@ -82,11 +81,14 @@ button, input, select { font: inherit; color: inherit; }
 .input:focus { border-color: var(--accent); background: #fff; box-shadow: 0 0 0 4px var(--accent-soft); }
 .money { position: relative; }
 .money .input { padding-left: 30px; }
+.unit { position: relative; }
+.unit .input { padding-right: 46px; }
+.unit::after { content: attr(data-unit); position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: var(--faint); font-size: .85rem; font-weight: 600; pointer-events: none; }
 .money::before { content: "$"; position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--muted); font-weight: 600; }
 .field.invalid .input { border-color: var(--error); background: var(--error-soft); }
 .err { display: none; margin-top: 6px; font-size: .82rem; font-weight: 600; color: var(--error); }
 .field.invalid .err { display: block; }
-.row2 { display: grid; grid-template-columns: 1fr 120px; gap: 12px; }
+.row2 { display: grid; grid-template-columns: 1fr 110px; gap: 12px; }
 
 .drop {
   display: flex; align-items: center; gap: 12px; width: 100%; padding: 14px; border-radius: var(--r-md);
@@ -238,9 +240,15 @@ button, input, select { font: inherit; color: inherit; }
         <div class="err" id="location-err">Enter a city and state</div>
       </div>
 
-      <div class="field" data-field="salary">
-        <label for="salary">Current or offered salary <span class="opt">· per year</span></label>
-        <div class="money"><input class="input" id="salary" name="salary" value="110,000" inputmode="numeric" placeholder="Optional"></div>
+      <div class="row2">
+        <div class="field" data-field="salary">
+          <label for="salary">Current or offered salary</label>
+          <div class="money unit" data-unit="/ yr"><input class="input" id="salary" name="salary" value="110,000" inputmode="numeric" placeholder="Optional"></div>
+        </div>
+        <div class="field" data-field="years">
+          <label for="years">Experience</label>
+          <div class="unit" data-unit="yrs"><input class="input" id="years" name="years" inputmode="numeric" placeholder="0"></div>
+        </div>
       </div>
 
       <div class="field">
@@ -255,15 +263,9 @@ button, input, select { font: inherit; color: inherit; }
         <p class="parse-note" id="parse-note" aria-live="polite"></p>
       </div>
 
-      <div class="row2">
-        <div class="field">
-          <span class="label">Your skills</span>
-          <div class="chips" id="chips"></div>
-        </div>
-        <div class="field">
-          <label for="years">Experience</label>
-          <input class="input" id="years" name="years" inputmode="numeric" placeholder="Years">
-        </div>
+      <div class="field">
+        <span class="label">Your skills</span>
+        <div class="chips" id="chips"></div>
       </div>
 
       <button class="cta" id="cta" type="submit">Estimate my range</button>
@@ -286,5 +288,227 @@ button, input, select { font: inherit; color: inherit; }
     </main>
   </div>
 </div>
+
+<script>
+"use strict";
+const $ = (s) => document.querySelector(s);
+const usd = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+const money = (x) => usd.format(x);
+const short = (x) => (x >= 1000 ? `$${Math.round(x / 1000)}k` : money(x));
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const X_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+
+const state = { all: [], labels: {}, skills: [] };
+
+/* ---------- skills chips ---------- */
+function renderChips() {
+  const chips = state.skills.map((k) =>
+    `<button type="button" class="chip" data-skill="${k}" aria-label="Remove ${esc(state.labels[k])}">${esc(state.labels[k])}${X_ICON}</button>`).join("");
+  const left = state.all.filter((s) => !state.skills.includes(s.key));
+  const add = left.length
+    ? `<select class="add-skill" id="add-skill" aria-label="Add a skill"><option value="">+ Add skill</option>${
+        left.map((s) => `<option value="${s.key}">${esc(s.label)}</option>`).join("")}</select>`
+    : "";
+  $("#chips").innerHTML = chips + add;
+}
+$("#chips").addEventListener("click", (e) => {
+  const chip = e.target.closest(".chip");
+  if (chip) { state.skills = state.skills.filter((k) => k !== chip.dataset.skill); renderChips(); $("#add-skill")?.focus(); }
+});
+$("#chips").addEventListener("change", (e) => {
+  if (e.target.id === "add-skill" && e.target.value) { state.skills.push(e.target.value); renderChips(); $("#add-skill")?.focus(); }
+});
+
+/* ---------- salary + years formatting ---------- */
+const digits = (s) => s.replace(/[^\d]/g, "");
+$("#salary").addEventListener("input", (e) => {
+  const d = digits(e.target.value).slice(0, 7);
+  e.target.value = d ? Number(d).toLocaleString("en-US") : "";
+});
+$("#years").addEventListener("input", (e) => { e.target.value = digits(e.target.value).slice(0, 2); });
+
+/* ---------- resume upload ---------- */
+const drop = $("#drop"), file = $("#file"), note = $("#parse-note");
+drop.addEventListener("click", () => file.click());
+["dragenter", "dragover"].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add("over"); }));
+["dragleave", "drop"].forEach((t) => drop.addEventListener(t, () => drop.classList.remove("over")));
+drop.addEventListener("drop", (e) => { e.preventDefault(); if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+file.addEventListener("change", () => file.files[0] && handleFile(file.files[0]));
+
+async function handleFile(f) {
+  if (!/\.(pdf|docx|txt)$/i.test(f.name)) return setNote("Use a PDF, DOCX or TXT file.", true);
+  if (f.size > 10 * 1024 * 1024) return setNote("This file is over 10 MB. Try a smaller copy.", true);
+  $("#drop-name").textContent = f.name;
+  $("#drop-hint").textContent = "Reading your resume…";
+  drop.classList.add("has-file");
+  try {
+    const data = await new Promise((ok, bad) => {
+      const r = new FileReader();
+      r.onload = () => ok(String(r.result).split(",")[1] || ""); r.onerror = bad; r.readAsDataURL(f);
+    });
+    const res = await fetch("/api/parse-resume", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: f.name, data }) });
+    const out = await res.json();
+    if (!res.ok) throw new Error(out.error);
+    state.skills = [...new Set([...state.skills, ...out.skills])];
+    renderChips();
+    if (out.years != null) $("#years").value = Math.round(out.years);
+    $("#drop-hint").textContent = "Click to replace";
+    if (!out.skills.length && out.years == null) setNote("No skills found. If it's a scanned PDF, try a DOCX or add skills below.", true);
+    else setNote(`Found ${out.skills.length} skill${out.skills.length === 1 ? "" : "s"}${out.years != null ? ` and ${out.years} years of experience` : ""}. Edit them below if anything is off.`);
+  } catch (err) {
+    $("#drop-hint").textContent = "Click to try another file";
+    setNote("We couldn't read this file. Try another PDF, DOCX or TXT, or add skills below.", true);
+  }
+}
+function setNote(text, warn = false) { note.textContent = text; note.classList.toggle("warn", warn); }
+
+/* ---------- validation ---------- */
+function setInvalid(field, msg) {
+  const el = document.querySelector(`[data-field="${field}"]`);
+  if (!el) return;
+  el.classList.toggle("invalid", !!msg);
+  const input = el.querySelector("input");
+  input.setAttribute("aria-invalid", msg ? "true" : "false");
+  const err = el.querySelector(".err");
+  if (err && msg) { err.textContent = msg; input.setAttribute("aria-describedby", err.id); }
+}
+["title", "location"].forEach((f) => $("#" + f).addEventListener("input", () => setInvalid(f, "")));
+
+/* ---------- results ---------- */
+const pct = (x, lo, hi) => Math.min(Math.max(((x - lo) / (hi - lo)) * 100, 0), 100);
+
+function verdictText(cur, r) {
+  const gap = cur - r.p50;
+  if (cur < r.p10) return `You're <em>below the market range</em>`;
+  if (cur > r.p90) return `You're <em>above the market range</em>`;
+  if (Math.abs(gap) < 500) return `You're <em>right at typical pay</em>`;
+  return `You're <em>${money(Math.abs(gap))} ${gap < 0 ? "below" : "above"}</em> typical`;
+}
+
+function rangeIsland(p, r) {
+  const cur = p.salary;
+  const vals = [r.p10, r.p90, r.bls_median].concat(cur ? [cur] : []);
+  let lo = Math.min(...vals), hi = Math.max(...vals);
+  const pad = (hi - lo) * 0.08 || hi * 0.1; lo -= pad; hi += pad;
+  const x = { p10: pct(r.p10, lo, hi), p50: pct(r.p50, lo, hi), p90: pct(r.p90, lo, hi), bls: pct(r.bls_median, lo, hi) };
+  const same = Math.abs(r.bls_median - r.p50) / r.p50 < 0.01;
+  const where = `<b>${esc(p.title)}</b> in <b>${esc(p.location)}</b>`;
+
+  const head = cur
+    ? `<h2 class="verdict">${verdictText(cur, r)}</h2>
+       <p class="context">Typical pay for ${where} is <b>${money(r.p50)}</b> a year. You entered ${money(cur)}.</p>`
+    : `<h2 class="verdict">Typical pay is ${money(r.p50)}</h2>
+       <p class="context">For ${where}. <button type="button" class="link-btn" id="add-salary">Add your salary</button> to see where you stand.</p>`;
+
+  let you = "";
+  if (cur) {
+    const xy = pct(cur, lo, hi);
+    const edge = xy < 10 ? " edge-l" : xy > 90 ? " edge-r" : "";
+    you = `<div class="you" data-x="${xy.toFixed(2)}" style="left:${x.p10.toFixed(2)}%">
+             <div class="you-pin${edge}"><span class="you-label">You · ${short(cur)}</span><span class="you-stem"></span><span class="you-dot"></span></div></div>`;
+  }
+  const bls = same ? "" : `<div class="mark-bls" style="left:${x.bls.toFixed(2)}%"></div>`;
+  const blsText = same
+    ? `<span><i class="lg-bls"></i>BLS median <b>${money(r.bls_median)}</b> matches the typical pay</span>`
+    : `<span><i class="lg-bls"></i>BLS median <b>${money(r.bls_median)}</b></span>`;
+
+  return `<section class="island high hover-float">
+    <p class="eyebrow">Where you stand</p>
+    ${head}
+    <div class="chart" role="img" aria-label="Market range ${money(r.p10)} to ${money(r.p90)}, typical ${money(r.p50)}${cur ? `, you ${money(cur)}` : ""}, BLS median ${money(r.bls_median)}">
+      <div class="track">
+        <div class="band" style="left:${x.p10.toFixed(2)}%;width:${(x.p90 - x.p10).toFixed(2)}%"></div>
+        ${bls}
+        <div class="mark-p50" style="left:${x.p50.toFixed(2)}%"></div>
+        ${you}
+      </div>
+      <div class="ticks">
+        <div class="tick${x.p10 < 8 ? " l" : ""}" style="left:${x.p10.toFixed(2)}%"><b>${short(r.p10)}</b><span>Low · P10</span></div>
+        <div class="tick" style="left:${x.p50.toFixed(2)}%"><b>${short(r.p50)}</b><span>Typical · P50</span></div>
+        <div class="tick${x.p90 > 92 ? " r" : ""}" style="left:${x.p90.toFixed(2)}%"><b>${short(r.p90)}</b><span>High · P90</span></div>
+      </div>
+      <div class="legend">
+        <span><i class="lg-band"></i>Middle 80% of pay for similar roles</span>
+        <span><i class="lg-p50"></i>Typical (median)</span>
+        ${blsText}
+      </div>
+    </div>
+  </section>`;
+}
+
+function skillsIsland(p, recs) {
+  const n = p.skills.length;
+  const basis = n
+    ? `Based on your ${n} skill${n === 1 ? "" : "s"}${p.years != null ? ` and ${p.years} years of experience` : ""}.`
+    : "You haven't listed any skills, so every skill counts as missing. Add yours for sharper advice.";
+  if (!recs.length) return `<section class="island rise d1"><p class="eyebrow">Next steps</p><h2 class="h">You already list every skill we track</h2></section>`;
+  const top = Math.max(...recs.map((r) => r.delta)) || 1;
+  const rows = recs.map((r) => `<div class="rec"><span class="rec-name">${esc(r.label)}</span>
+      <span class="rec-bar"><i data-w="${Math.max(r.delta / top, 0.04) * 100}"></i></span>
+      <span class="rec-val">+${money(r.delta)} <small>/ yr</small></span></div>`).join("");
+  return `<section class="island rise d1">
+    <p class="eyebrow">Next steps</p>
+    <h2 class="h">Skills linked to higher pay</h2>
+    <p class="sub">Associated change in typical pay if the skill were on your profile. Not a guaranteed raise.</p>
+    <div class="recs">${rows}</div>
+    <p class="note">${basis}</p>
+  </section>`;
+}
+
+function messageIsland(title, body) {
+  return `<section class="island high rise"><p class="eyebrow">Where you stand</p>
+    <p class="ghost-title">${esc(title)}</p><p class="state-msg">${esc(body)}</p></section>`;
+}
+
+function animateIn(root) {
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    root.querySelectorAll(".you").forEach((el) => (el.style.left = el.dataset.x + "%"));
+    root.querySelectorAll(".rec-bar i").forEach((el) => (el.style.width = el.dataset.w + "%"));
+  }));
+}
+
+/* ---------- submit ---------- */
+$("#form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const p = {
+    title: $("#title").value.trim(),
+    location: $("#location").value.trim(),
+    salary: Number(digits($("#salary").value)) || null,
+    years: $("#years").value === "" ? null : Number($("#years").value),
+    skills: [...state.skills],
+  };
+  const errors = {};
+  if (!p.title) errors.title = "Enter a job title";
+  if (!p.location) errors.location = "Enter a city and state";
+  ["title", "location"].forEach((f) => setInvalid(f, errors[f]));
+  if (Object.keys(errors).length) { $("#" + Object.keys(errors)[0]).focus(); return; }
+
+  const cta = $("#cta"); cta.disabled = true; cta.textContent = "Estimating…";
+  const results = $("#results");
+  try {
+    const res = await fetch("/api/estimate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(p) });
+    const out = await res.json();
+    if (res.status === 422 && out.errors) {
+      Object.entries(out.errors).forEach(([f, m]) => setInvalid(f, m));
+      return;
+    }
+    if (!res.ok) throw new Error(out.error);
+    results.innerHTML = rangeIsland(p, out.range) + skillsIsland(p, out.recommendations);
+    animateIn(results);
+    $("#add-salary")?.addEventListener("click", () => $("#salary").focus());
+  } catch (err) {
+    results.innerHTML = messageIsland("We couldn't estimate this role",
+      "Try a more common job title, such as Software Engineer or Data Analyst, or a nearby large city.");
+  } finally {
+    cta.disabled = false; cta.textContent = "Estimate my range";
+    if (window.matchMedia("(max-width: 920px)").matches) results.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+});
+
+/* ---------- start ---------- */
+fetch("/api/skills").then((r) => r.json()).then((all) => {
+  state.all = all; all.forEach((s) => (state.labels[s.key] = s.label)); renderChips();
+}).catch(() => { $("#chips").innerHTML = '<p class="parse-note warn">Can\'t reach the server. Is <code>python -m src.app.server</code> running?</p>'; });
+</script>
 </body>
 </html>
