@@ -209,3 +209,37 @@ Outcome: Claude worked on new branch `app/desktop` with defaults: Windows only, 
 3. `33efc61`: Ctrl+Alt+S global hotkey, tray icon (Open / Quit), no taskbar button, collapse when clicking into another app.
 4. `87bebab`: PyInstaller build (`python -m src.desktop.build` gives `dist/SalaryAdvisor/SalaryAdvisor.exe`, ~75 MB).
 5. README "Desktop app" section, `make desktop` / `make desktop-exe`, desktop tests (20 tests pass).
+
+### 2026-11-25 · Claude Code (Opus 5.5) · Purpose: explanation / planning
+Prompts:
+```
+I don't see the desktop branch on my github
+```
+```
+how do I run it?
+```
+```
+just answer my question so for instance I wanted this to natively for linkend like with this notch turn on you past in your resume then it will estimate your range and also in real time will filter out the job on linkend. is it possible with the current LLM or do we need anything more?
+```
+```
+So what is the best approach for this project to make it impressive and with in the time frame
+```
+Outcome: Claude explained that the branch was only local (`git push -u origin app/desktop`) and how to run the desktop app. On LinkedIn, it explained that the blocker is access, not AI: LinkedIn has no public jobs API and its User Agreement forbids scraping; a browser extension reading the page the user is viewing is the realistic route, and an LLM is optional. It recommended making this future work. It then gave a priority plan: real `predict()` from Pubudu's QuantReg first, a "why this range" panel, one demo frontend, merges before the Nov 30 freeze, and a scripted demo story.
+
+### 2026-11-25 · Claude Code (Opus 5.5) · Purpose: coding (frontend)
+Prompts:
+```
+with this design reference please and animation and make it look interactive
+```
+(attached screenshot: a wide notch dashboard with media player, calendar, app grid, to-do list and focus timer widgets)
+```
+please commit every step of the way
+```
+Outcome: Claude rebuilt the expanded notch (`web/index.html`, used by both the web and desktop apps) as one wide bar of live widgets:
+- pay card (gradient tile, verdict, range scrubber, −5k/+5k what-if salary)
+- profile with an experience picker
+- skill tiles
+- a skills-to-add checklist (tick to add, then re-estimate)
+- a typical/low/high/BLS number cycler with auto-play
+- a resume button
+Estimates update live with no Estimate button. Animations: staggered widget pop-in, gliding range markers, counting numbers, pay-card bump on mood change, springy tiles and ticks; all off under reduced motion. Commits on `app/desktop`: `f0a114b` (layout), `cdfb75c` (interactions), `636c2ba` (animations), and the responsive/desktop fit. Verified in a browser at 1600/1024/390 px and in the desktop window (1200×288 open, 374×38 collapsed).
