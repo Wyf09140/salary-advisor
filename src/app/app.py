@@ -7,10 +7,11 @@ sys.path.append(str(Path(__file__).resolve().parents[2]))
 import streamlit as st
 from src.models.predict import predict, recommend
 from src.app.resume_parser import extract_text, extract_skills, extract_years
+from src.app import theme
 
 st.set_page_config(page_title="Salary Advisor", layout="centered")
-st.title("Salary Advisor")
-st.caption("Market wage range for early-career software and data roles")
+theme.apply()
+theme.top_bar()
 
 title = st.text_input("Job title", "Data Scientist")
 location = st.text_input("Location (city, state)", "San Jose, CA")
