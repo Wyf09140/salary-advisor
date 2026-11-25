@@ -40,6 +40,7 @@ make baseline   # BLS-median baseline metrics
 make train      # quantile models
 make evaluate   # MAE (log wage), pinball loss, 80% interval coverage
 make app        # launch Streamlit app
+make web        # launch the dedicated web frontend at http://localhost:8600
 make test       # interface + offline end-to-end pipeline tests
 ```
 

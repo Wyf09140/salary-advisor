@@ -1,4 +1,4 @@
-.PHONY: data baseline train evaluate app test
+.PHONY: data baseline train evaluate app web test
 data:
 	python -m src.data.download
 	python -m src.data.clean
@@ -10,5 +10,7 @@ evaluate:
 	python -m src.models.evaluate
 app:
 	streamlit run src/app/app.py
+web:
+	python -m src.app.server
 test:
 	python -m pytest -q
