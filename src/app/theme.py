@@ -115,6 +115,14 @@ html, body, .stApp, .stMarkdown, p, label, button, input, textarea, [data-basewe
 .sa-legend { display: flex; align-items: center; gap: .5rem; font-size: .82rem; color: var(--muted); margin-top: .6rem; }
 .sa-legend-bls { width: 18px; border-top: 2px dashed var(--bls); }
 
+/* ---------- skills island ---------- */
+.sa-recs { display: flex; flex-direction: column; gap: .85rem; }
+.sa-rec { display: grid; grid-template-columns: minmax(7rem, 11rem) 1fr auto; align-items: center; gap: 1rem; }
+.sa-rec-name { font-weight: 600; color: var(--ink); font-size: .95rem; }
+.sa-rec-bar { height: 10px; border-radius: var(--radius-sm); background: var(--accent-soft); overflow: hidden; }
+.sa-rec-bar i { display: block; height: 100%; border-radius: inherit; background: var(--accent); }
+.sa-rec-val { font-weight: 700; color: var(--ink); font-size: .95rem; min-width: 4.5rem; text-align: right; }
+
 /* ---------- empty state ---------- */
 .sa-empty { text-align: center; padding: 1.4rem .5rem .6rem; }
 .sa-empty .sa-ghost { height: 14px; border-radius: var(--radius-sm); margin: 1.6rem auto 1.4rem; max-width: 420px;
@@ -134,6 +142,8 @@ html, body, .stApp, .stMarkdown, p, label, button, input, textarea, [data-basewe
 .stButton > button[data-testid="stBaseButton-primary"] p { font-weight: 700; font-size: 1rem; }
 .stButton > button[data-testid="stBaseButton-primary"]:hover { transform: translateY(-1px); box-shadow: 0 14px 26px -12px rgba(47, 107, 255, .9); }
 .stButton > button[data-testid="stBaseButton-primary"]:active { transform: translateY(1px); }
+[data-baseweb="tag"] { background: var(--accent-soft) !important; border-radius: var(--radius-sm) !important; }
+[data-baseweb="tag"] span, [data-baseweb="tag"] svg { color: var(--accent) !important; font-weight: 600; }
 [data-testid="stFileUploaderDropzone"] { border-radius: 16px; background: var(--accent-soft); }
 """
 

@@ -6,6 +6,17 @@ Styling lives in theme.py; class names here start with "sa-".
 from html import escape
 
 
+_LABELS = {
+    "sql": "SQL", "javascript": "JavaScript / TypeScript", "cpp": "C++", "go": "Go", "aws": "AWS",
+    "gcp": "Google Cloud", "power_bi": "Power BI", "nlp": "NLP", "llm": "LLMs", "git": "Git",
+}
+
+
+def skill_label(skill: str) -> str:
+    """Display name for a canonical skill key from config/skills.yaml."""
+    return _LABELS.get(skill, skill.replace("_", " ").capitalize())
+
+
 def money(x: float) -> str:
     return f"${x:,.0f}"
 
@@ -67,6 +78,27 @@ def range_band(r: dict, current: float | None) -> str:
   </div>
   <div class="sa-legend sa-num"><i class="sa-legend-bls"></i>BLS median for this occupation and area: {money(r['bls_median'])}</div>
 </div>"""
+
+
+def skills_island(recs: list[tuple[str, float]], n_skills: int, years: float | None) -> str:
+    """Ranked bars of predicted P50 uplift for skills missing from the profile."""
+    using = f"Based on {n_skills} skill{'s' if n_skills != 1 else ''}"
+    using += f" and {years:g} years of experience" if years else ""
+    head = '<p class="sa-eyebrow">Next steps</p><p class="sa-h">Skills linked to higher pay</p>'
+    if not recs:
+        return head + '<p class="sa-note">Your profile already lists every skill we track.</p>'
+    top = max(d for _, d in recs) or 1
+    rows = "".join(
+        f'<div class="sa-rec"><span class="sa-rec-name">{escape(skill_label(s))}</span>'
+        f'<span class="sa-rec-bar"><i style="width:{max(d / top, 0.04) * 100:.1f}%"></i></span>'
+        f'<span class="sa-rec-val sa-num">+{money(d)}</span></div>'
+        for s, d in recs
+    )
+    return (
+        f'{head}<div class="sa-recs">{rows}</div>'
+        f'<p class="sa-note">{using}. Change in predicted typical pay if the skill were added to your '
+        "profile. These are associations in the data, not guaranteed raises.</p>"
+    )
 
 
 def range_island(title: str, location: str, r: dict, current: float | None) -> str:
