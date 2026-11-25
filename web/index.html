@@ -239,6 +239,18 @@ kbd { font-family: inherit; font-size: .78rem; padding: 2px 7px; border-radius: 
 .empty h2 { margin: 0; font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; }
 .empty p { margin: 6px 0 14px; color: var(--isl-muted); font-size: .9rem; line-height: 1.45; }
 
+/* ---------- desktop app (src/desktop): the native window is the island ----------
+   The island fills the window; Python sizes and shapes the window to match, so no size transition here. */
+html.desktop, html.desktop body { background: #121318; min-height: 0; height: 100%; overflow: hidden; }
+html.desktop .sky, html.desktop .brand, html.desktop .hero { display: none; }
+html.desktop .island {
+  inset: 0; left: 0; transform: none; width: 100% !important; height: 100% !important; border-radius: 0;
+  background: #121318; -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none; transition: none;
+}
+html.desktop .island.expanded { box-shadow: none; border-radius: 0; }
+html.desktop .panel { width: 560px; }  /* fixed: 100vw would follow the (collapsed) window width */
+html.desktop .island.expanded > .pill, html.desktop .island:not(.expanded) > .panel { display: none; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
@@ -251,6 +263,12 @@ kbd { font-family: inherit; font-size: .78rem; padding: 2px 7px; border-radius: 
   .hero { padding-bottom: 12vh; }
   .pill-sub, .hero-cta kbd { display: none; }
 }
+/* The desktop window is only as wide as the island (< 600 px); keep the desktop layout, not the phone one. */
+html.desktop .panel { padding: 14px 20px 20px; }
+html.desktop .tab { padding: 0 14px; }
+html.desktop .grid2 { grid-template-columns: 1fr 1fr; gap: 12px; }
+html.desktop .grid2.money-row { grid-template-columns: 1fr 120px; }
+html.desktop .pill-sub { display: inline; }
 </style>
 </head>
 <body class="open">
@@ -352,11 +370,21 @@ const island = $("#island"), pill = $("#pill"), panel = $("#panel");
 const state = { all: [], labels: {}, skills: [], result: null, profile: null, tab: "profile" };
 
 /* ================= island: size, expand, collapse ================= */
+const DESKTOP = document.documentElement.classList.contains("desktop");
+let lastFit = "";
 function fit() {
-  const face = island.classList.contains("expanded") ? panel : pill;
-  island.style.width = face.offsetWidth + "px";
-  island.style.height = face.offsetHeight + "px";
+  const open = island.classList.contains("expanded");
+  const face = open ? panel : pill;
+  const w = face.offsetWidth, h = face.offsetHeight;
+  island.style.width = w + "px";
+  island.style.height = h + "px";
+  // Desktop app: ask Python to size and shape the native window to the island (see src/desktop/app.py).
+  if (DESKTOP && window.pywebview?.api?.fit && w && h) {
+    const key = `${w}x${h}x${open}`;
+    if (key !== lastFit) { lastFit = key; window.pywebview.api.fit(w, h, open ? 30 : 22, window.devicePixelRatio || 1); }
+  }
 }
+window.addEventListener("pywebviewready", () => { lastFit = ""; fit(); });
 new ResizeObserver(fit).observe(panel);
 new ResizeObserver(fit).observe(pill);
 window.addEventListener("resize", fit);
@@ -596,6 +624,8 @@ $("#tp-profile").addEventListener("submit", async (e) => {
 
 /* ================= start ================= */
 showEmptyResults();
+// Desktop app starts as a quiet pill at the top of the screen (class start-open is a test switch).
+if (DESKTOP && !document.documentElement.classList.contains("start-open")) collapse();
 fit();
 fetch("/api/skills").then((r) => r.json()).then((all) => {
   state.all = all; all.forEach((s) => (state.labels[s.key] = s.label)); renderChips(); fit();

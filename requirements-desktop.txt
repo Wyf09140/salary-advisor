@@ -1,0 +1,3 @@
+# Extra packages for the desktop notch app (python -m src.desktop). Windows 10/11 with Edge WebView2.
+# Install on top of requirements.txt:  pip install -r requirements-desktop.txt
+pywebview>=6.2
